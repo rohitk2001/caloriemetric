@@ -1,0 +1,409 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Streaks & Badges — CalorieMetric"
+  description="Track your calorie goal streak, earn milestone badges, and share your progress with CalorieMetric."
+  ogTitle="I'm tracking my calories with CalorieMetric — Free, no signup needed."
+  ogDescription="Build a streak, earn badges, and stay on track with CalorieMetric. Free forever."
+>
+  <section class="streaks-page">
+    <div class="container">
+
+      <!-- No setup state -->
+      <div id="no-tdee-state" class="no-tdee-state hidden">
+        <div class="no-tdee-card card-lg">
+          <div class="no-tdee-icon">🔥</div>
+          <h1 class="section-heading" style="margin-top: var(--space-md);">Start your streak today.</h1>
+          <p class="text-body" style="margin-top: var(--space-sm); max-width: 400px;">
+            Set up your calorie goal and log your first meal to begin your streak.
+          </p>
+          <a href="/calculator" class="btn-primary" style="margin-top: var(--space-xl);">Get Started</a>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div id="streaks-main" class="hidden">
+        <div class="streaks-header">
+          <p class="eyebrow">Your progress</p>
+          <h1 class="section-heading" style="margin-top: var(--space-xs);">Streaks &amp; Badges.</h1>
+        </div>
+
+        <!-- Streak hero card -->
+        <div class="streak-hero card-lg">
+          <div class="streak-hero-inner">
+            <div class="streak-main-block">
+              <div class="streak-fire-large" aria-hidden="true">🔥</div>
+              <div class="streak-count-block">
+                <span id="current-streak" class="streak-count">0</span>
+                <span class="streak-count-label">Day Streak</span>
+              </div>
+            </div>
+            <div class="streak-meta">
+              <div class="streak-meta-item">
+                <span class="streak-meta-label">Longest streak</span>
+                <span id="longest-streak" class="streak-meta-val">0 days</span>
+              </div>
+              <div class="streak-meta-item">
+                <span class="streak-meta-label">Last logged</span>
+                <span id="last-logged" class="streak-meta-val">—</span>
+              </div>
+              <div class="streak-meta-item">
+                <span class="streak-meta-label">Badges earned</span>
+                <span id="badge-count" class="streak-meta-val">0 / 3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress to next milestone -->
+          <div id="next-milestone-block" class="next-milestone hidden">
+            <div class="next-milestone-header">
+              <p class="eyebrow">Next milestone</p>
+              <span id="next-milestone-name" class="next-milestone-name">—</span>
+            </div>
+            <div class="next-milestone-progress">
+              <div class="progress-bar">
+                <div id="milestone-fill" class="progress-fill" style="width: 0%;"></div>
+              </div>
+              <span id="milestone-label" class="milestone-label">0 / 7 days</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Badges section -->
+        <section class="badges-section">
+          <h2 class="section-sub-heading">Milestone Badges</h2>
+          <div class="badges-full-grid" id="badges-full-grid"></div>
+        </section>
+
+        <!-- Share section -->
+        <section class="share-section">
+          <h2 class="section-sub-heading">Share Your Streak</h2>
+          <div class="share-card card-lg" id="share-card" aria-label="Shareable streak card">
+            <div class="share-card-inner">
+              <div class="share-card-streak">
+                <span class="share-fire">🔥</span>
+                <div>
+                  <p class="share-headline" id="share-headline">
+                    I've hit my calorie goal <strong>0 days</strong> in a row with CalorieMetric
+                  </p>
+                  <p class="share-sub">Track yours free at caloriemetric.com — no signup needed.</p>
+                </div>
+              </div>
+              <div class="share-badges-row" id="share-badges-earned"></div>
+            </div>
+          </div>
+          <div class="share-actions">
+            <button type="button" id="copy-btn" class="btn-secondary btn-sm share-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy Message
+            </button>
+            <button type="button" id="share-btn" class="btn-primary btn-sm share-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              Share
+            </button>
+            <span id="copy-confirm" class="copy-confirm hidden">Copied! ✅</span>
+          </div>
+        </section>
+
+        <!-- Streak calendar (last 30 days) -->
+        <section class="calendar-section">
+          <h2 class="section-sub-heading">Last 30 Days</h2>
+          <div class="calendar-grid" id="calendar-grid" aria-label="Streak calendar for last 30 days"></div>
+          <div class="calendar-legend">
+            <span class="legend-item"><span class="legend-dot legend-on"></span> On track</span>
+            <span class="legend-item"><span class="legend-dot legend-missed"></span> Over goal</span>
+            <span class="legend-item"><span class="legend-dot legend-empty"></span> Not logged</span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .streaks-page { padding: var(--space-4xl) 0 var(--space-5xl); }
+
+  .no-tdee-state { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
+  .no-tdee-card { text-align: center; max-width: 480px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+  .no-tdee-icon { font-size: 48px; }
+
+  .streaks-header { margin-bottom: var(--space-xl); }
+
+  /* Streak hero */
+  .streak-hero { display: flex; flex-direction: column; gap: var(--space-xl); }
+  .streak-hero-inner { display: flex; align-items: center; gap: var(--space-3xl); flex-wrap: wrap; }
+  .streak-main-block { display: flex; align-items: center; gap: var(--space-lg); }
+  .streak-fire-large { font-size: 64px; line-height: 1; }
+  .streak-count { font-size: 80px; font-weight: 700; letter-spacing: -4px; line-height: 1; color: var(--color-ink); }
+  .streak-count-label { font-size: 16px; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: var(--space-xxs); }
+  .streak-meta { display: flex; gap: var(--space-xl); flex-wrap: wrap; }
+  .streak-meta-item { display: flex; flex-direction: column; gap: var(--space-xxs); }
+  .streak-meta-label { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; }
+  .streak-meta-val { font-size: 20px; font-weight: 600; color: var(--color-ink); letter-spacing: -0.5px; }
+
+  /* Next milestone */
+  .next-milestone { display: flex; flex-direction: column; gap: var(--space-sm); }
+  .next-milestone-header { display: flex; align-items: center; gap: var(--space-md); }
+  .next-milestone-name { font-size: 15px; font-weight: 600; color: var(--color-ink); }
+  .next-milestone-progress { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .milestone-label { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); }
+
+  /* Badges full grid */
+  .badges-section { margin-top: var(--space-3xl); }
+  .section-sub-heading { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: var(--space-lg); }
+  .badges-full-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+  .badge-full-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xl) var(--space-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas);
+    text-align: center;
+    transition: border-color 0.2s;
+    box-shadow: var(--shadow-2);
+  }
+  .badge-full-item.earned {
+    border-color: var(--color-accent);
+    background: linear-gradient(135deg, var(--color-canvas) 0%, var(--color-accent-soft) 100%);
+  }
+  .badge-full-item.locked { opacity: 0.45; }
+  .badge-full-emoji { font-size: 48px; }
+  .badge-full-name { font-size: 16px; font-weight: 600; color: var(--color-ink); }
+  .badge-full-req { font-size: 13px; color: var(--color-mute); font-family: var(--font-mono); }
+  .badge-full-earned-label { font-size: 12px; font-weight: 600; color: var(--color-accent-deep); }
+
+  /* Share — intentionally always dark, never flips with dark mode */
+  .share-section { margin-top: var(--space-3xl); }
+  .share-card {
+    background: #0d0d0d;
+    border-radius: var(--radius-xl);
+    box-shadow: none;
+  }
+  .share-card-inner { display: flex; flex-direction: column; gap: var(--space-lg); }
+  .share-card-streak { display: flex; gap: var(--space-md); align-items: flex-start; }
+  .share-fire { font-size: 40px; flex-shrink: 0; }
+  .share-headline { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.4; color: #f5f5f5; }
+  .share-headline strong { color: var(--color-accent); }
+  .share-sub { font-size: 14px; color: #888888; margin-top: var(--space-xs); font-family: var(--font-mono); }
+  .share-badges-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+  .share-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xxs);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius-full);
+    padding: var(--space-xxs) var(--space-sm);
+    font-size: 13px;
+    color: #f5f5f5;
+  }
+
+  .share-actions { display: flex; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); flex-wrap: wrap; }
+  .share-btn { display: inline-flex; align-items: center; gap: var(--space-xs); }
+  .copy-confirm { font-size: 14px; color: var(--color-accent-deep); font-weight: 500; }
+
+  /* Calendar */
+  .calendar-section { margin-top: var(--space-3xl); }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: var(--space-xs);
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: var(--radius-xs);
+    background: var(--color-canvas-soft-2);
+    position: relative;
+    cursor: default;
+    transition: transform 0.15s;
+  }
+  .cal-day:hover { transform: scale(1.1); z-index: 1; }
+  .cal-day[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #171717;
+    color: #f5f5f5;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    font-family: var(--font-mono);
+  }
+  .cal-day.on-track { background: var(--color-accent); }
+  .cal-day.over-goal { background: var(--color-error-soft); }
+  .cal-day.today { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+  .calendar-legend { display: flex; gap: var(--space-lg); margin-top: var(--space-md); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: var(--space-xs); font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .legend-on { background: var(--color-accent); }
+  .legend-missed { background: var(--color-error-soft); }
+  .legend-empty { background: var(--color-canvas-soft-2); border: 1px solid var(--color-hairline); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .streak-hero-inner { flex-direction: column; align-items: flex-start; gap: var(--space-xl); }
+    .streak-count { font-size: 64px; }
+    .streak-fire-large { font-size: 48px; }
+    .badges-full-grid { grid-template-columns: 1fr; }
+    .calendar-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .streaks-page { padding: var(--space-xl) 0 var(--space-3xl); }
+    .streak-meta { gap: var(--space-md); }
+    .calendar-grid { grid-template-columns: repeat(5, 1fr); }
+    .share-card-streak { flex-direction: column; }
+  }
+</style>
+
+<script>
+  const BADGES_CONFIG = [
+    { id: 'week_warrior', emoji: '🥉', name: 'Week Warrior', req: '7-day streak', days: 7 },
+    { id: 'monthly_master', emoji: '🥈', name: 'Monthly Master', req: '30-day streak', days: 30 },
+    { id: 'century_club', emoji: '🥇', name: 'Century Club', req: '100-day streak', days: 100 },
+  ];
+
+  function getStreak() {
+    try { return JSON.parse(localStorage.getItem('cm_streak') || '{"currentStreak":0,"lastLoggedDate":"","longestStreak":0}'); }
+    catch { return { currentStreak: 0, lastLoggedDate: '', longestStreak: 0 }; }
+  }
+
+  function getBadges() {
+    try { return JSON.parse(localStorage.getItem('cm_badges') || '[]'); } catch { return []; }
+  }
+
+  function getLogs() {
+    try { return JSON.parse(localStorage.getItem('cm_logs') || '{}'); } catch { return {}; }
+  }
+
+  function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+  function formatShortDate(dateStr) {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  const tdee = localStorage.getItem('cm_tdee');
+  if (!tdee) {
+    document.getElementById('no-tdee-state').classList.remove('hidden');
+  } else {
+    document.getElementById('streaks-main').classList.remove('hidden');
+
+    const streak = getStreak();
+    const badges = getBadges();
+    const tdeeNum = parseInt(tdee);
+
+    // Streak hero
+    document.getElementById('current-streak').textContent = String(streak.currentStreak);
+    document.getElementById('longest-streak').textContent = streak.longestStreak + ' days';
+    document.getElementById('last-logged').textContent = streak.lastLoggedDate
+      ? formatShortDate(streak.lastLoggedDate)
+      : 'Never';
+    document.getElementById('badge-count').textContent = `${badges.length} / 3`;
+
+    // Next milestone
+    const nextMilestone = BADGES_CONFIG.find(b => !badges.includes(b.id));
+    if (nextMilestone) {
+      const milestoneBlock = document.getElementById('next-milestone-block');
+      milestoneBlock.classList.remove('hidden');
+      document.getElementById('next-milestone-name').textContent = nextMilestone.name + ' (' + nextMilestone.req + ')';
+      const pct = Math.min(100, Math.round((streak.currentStreak / nextMilestone.days) * 100));
+      document.getElementById('milestone-fill').style.width = pct + '%';
+      document.getElementById('milestone-label').textContent = `${streak.currentStreak} / ${nextMilestone.days} days`;
+    }
+
+    // Badges grid
+    const badgesGrid = document.getElementById('badges-full-grid');
+    badgesGrid.innerHTML = BADGES_CONFIG.map(b => {
+      const earned = badges.includes(b.id);
+      return `
+        <div class="badge-full-item ${earned ? 'earned' : 'locked'}">
+          <span class="badge-full-emoji">${earned ? b.emoji : '🔒'}</span>
+          <span class="badge-full-name">${b.name}</span>
+          <span class="badge-full-req">${b.req}</span>
+          ${earned ? '<span class="badge-full-earned-label">✅ Earned</span>' : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Share card
+    const shareHeadline = document.getElementById('share-headline');
+    shareHeadline.innerHTML = `I've hit my calorie goal <strong>${streak.currentStreak} days</strong> in a row with CalorieMetric`;
+
+    const shareBadgesRow = document.getElementById('share-badges-earned');
+    shareBadgesRow.innerHTML = BADGES_CONFIG
+      .filter(b => badges.includes(b.id))
+      .map(b => `<span class="share-badge-pill">${b.emoji} ${b.name}</span>`)
+      .join('');
+
+    const shareText = `🔥 I've hit my calorie goal ${streak.currentStreak} days in a row with CalorieMetric!\n${badges.length > 0 ? 'Badges earned: ' + BADGES_CONFIG.filter(b => badges.includes(b.id)).map(b => b.emoji + ' ' + b.name).join(', ') + '\n' : ''}Track yours free at caloriemetric.com — no signup needed.`;
+
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(shareText).then(() => {
+        const confirm = document.getElementById('copy-confirm');
+        confirm.classList.remove('hidden');
+        setTimeout(() => confirm.classList.add('hidden'), 3000);
+      }).catch(() => {
+        prompt('Copy this text:', shareText);
+      });
+    });
+
+    document.getElementById('share-btn').addEventListener('click', async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'CalorieMetric Streak',
+            text: shareText,
+            url: 'https://caloriemetric.com',
+          });
+        } catch {}
+      } else {
+        navigator.clipboard.writeText(shareText).then(() => {
+          const confirm = document.getElementById('copy-confirm');
+          confirm.classList.remove('hidden');
+          setTimeout(() => confirm.classList.add('hidden'), 3000);
+        }).catch(() => {
+          prompt('Copy this text:', shareText);
+        });
+      }
+    });
+
+    // Calendar
+    const logs = getLogs();
+    const calGrid = document.getElementById('calendar-grid');
+    const today = todayStr();
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+
+    calGrid.innerHTML = days.map(dateStr => {
+      const meals = logs[dateStr] || [];
+      const total = meals.reduce((s, m) => s + m.calories, 0);
+      const isToday = dateStr === today;
+      const hasLogs = meals.length > 0;
+      const onTrack = hasLogs && total <= tdeeNum;
+      const overGoal = hasLogs && total > tdeeNum;
+      const label = formatShortDate(dateStr) + (hasLogs ? `: ${total} kcal` : ': No logs');
+
+      let cls = 'cal-day';
+      if (onTrack) cls += ' on-track';
+      else if (overGoal) cls += ' over-goal';
+      if (isToday) cls += ' today';
+
+      return `<div class="${cls}" title="${label}" role="cell" aria-label="${label}"></div>`;
+    }).join('');
+  }
+</script>

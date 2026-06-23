@@ -1,11 +1,450 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "CalorieMetric",
+  "url": "https://caloriemetric.com",
+  "description": "Free calorie maintenance calculator. Log meals in plain English, track your streak, no signup needed.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://caloriemetric.com/calculator",
+    "query-input": "required name=search_term_string"
+  }
+};
 ---
 
-<Layout>
-	<Welcome />
+<Layout
+  title="CalorieMetric — Free Calorie Maintenance Calculator"
+  description="Calculate your maintenance calories for free. Log meals in plain English, track your streak, and stay on track — no signup needed."
+  jsonLd={jsonLd}
+>
+  <!-- Hero Section -->
+  <section class="hero-band">
+    <div class="hero-gradient" aria-hidden="true"></div>
+    <div class="container hero-content">
+      <div class="hero-eyebrow-row">
+        <span class="badge badge-accent eyebrow-badge">
+          <span class="badge-dot"></span>
+          Free · No Signup · Runs in Your Browser
+        </span>
+      </div>
+      <h1 class="hero-heading">
+        Finally know if you're<br class="hero-br" />
+        eating right. Free, forever.
+      </h1>
+      <p class="hero-subheadline">
+        Calculate your maintenance calories, log your meals in plain English,
+        and build a streak worth showing off.
+      </p>
+      <div class="hero-cta-row" id="hero-cta-row">
+        <a href="/calculator" class="btn-primary btn-hero" id="hero-primary-cta">Calculate My Calories</a>
+        <a href="/dashboard" class="btn-secondary btn-hero hidden" id="hero-dashboard-cta">Go to Dashboard</a>
+      </div>
+      <p class="hero-note">No account needed. Your data stays on your device.</p>
+    </div>
+  </section>
+
+  <!-- Social proof / trust row -->
+  <section class="trust-band">
+    <div class="container trust-inner">
+      <span class="trust-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Mifflin-St Jeor formula
+      </span>
+      <span class="trust-divider" aria-hidden="true"></span>
+      <span class="trust-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Plain-English meal logging
+      </span>
+      <span class="trust-divider" aria-hidden="true"></span>
+      <span class="trust-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Streak &amp; badge tracking
+      </span>
+      <span class="trust-divider" aria-hidden="true"></span>
+      <span class="trust-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Data stored locally — always private
+      </span>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-band">
+    <div class="container">
+      <div class="features-header">
+        <p class="eyebrow">How it works</p>
+        <h2 class="section-heading">Everything you need to stay on track.</h2>
+        <p class="text-body-lg features-subtitle">
+          Three tools in one — a precise calculator, a smart meal logger, and a habit streak system that keeps you honest.
+        </p>
+      </div>
+      <div class="features-grid">
+        <article class="feature-card card">
+          <div class="feature-icon feature-icon-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3 class="feature-title">Precision Calculator</h3>
+          <p class="text-body feature-desc">Uses the scientifically-validated Mifflin-St Jeor equation to calculate your exact maintenance calories based on your body and lifestyle.</p>
+          <a href="/calculator" class="feature-link">
+            Calculate now
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </a>
+        </article>
+
+        <article class="feature-card card">
+          <div class="feature-icon feature-icon-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          </div>
+          <h3 class="feature-title">Plain-English Logging</h3>
+          <p class="text-body feature-desc">Type "2 scrambled eggs and a cup of milk" and get accurate calorie data instantly. No barcode scanning, no searching through databases manually.</p>
+          <a href="/dashboard" class="feature-link">
+            Try logging
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </a>
+        </article>
+
+        <article class="feature-card card">
+          <div class="feature-icon feature-icon-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path><path d="M12 6v6l4 2"></path></svg>
+          </div>
+          <h3 class="feature-title">Streak &amp; Badges</h3>
+          <p class="text-body feature-desc">Stay on track with a daily streak counter. Earn badges at 7, 30, and 100 days. Share your streak on social media to keep yourself accountable.</p>
+          <a href="/streaks" class="feature-link">
+            View streaks
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- How Streaks Work -->
+  <section class="steps-band">
+    <div class="container">
+      <div class="steps-inner">
+        <div class="steps-text">
+          <p class="eyebrow">Simple habit loop</p>
+          <h2 class="section-heading">Build consistency,<br />not willpower.</h2>
+          <p class="text-body-lg" style="margin-top: var(--space-md);">
+            CalorieMetric works because it removes the friction. No app store downloads, no account creation. Just open the site and log — that's it.
+          </p>
+          <ol class="steps-list">
+            <li class="step-item">
+              <span class="step-num">01</span>
+              <div>
+                <strong>Calculate your goal.</strong>
+                <p class="text-body">Takes 30 seconds. Enter your stats and get your maintenance calories.</p>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-num">02</span>
+              <div>
+                <strong>Log what you eat.</strong>
+                <p class="text-body">Type your meal in plain English. We find the calories for you.</p>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-num">03</span>
+              <div>
+                <strong>Watch your streak grow.</strong>
+                <p class="text-body">Hit your goal today, and your streak increments. Miss a day, it resets.</p>
+              </div>
+            </li>
+          </ol>
+          <a href="/calculator" class="btn-primary" style="margin-top: var(--space-xl); display: inline-flex;">Start in 30 seconds</a>
+        </div>
+        <div class="steps-visual card-lg" aria-hidden="true">
+          <div class="mock-streak">
+            <div class="mock-streak-icon">🔥</div>
+            <div class="mock-streak-count">14</div>
+            <div class="mock-streak-label">Day Streak</div>
+          </div>
+          <div class="divider"></div>
+          <div class="mock-calories">
+            <div class="mock-cal-row">
+              <span class="mock-cal-label">Goal</span>
+              <span class="mock-cal-val">2,200 kcal</span>
+            </div>
+            <div class="mock-cal-row">
+              <span class="mock-cal-label">Consumed</span>
+              <span class="mock-cal-val mock-val-green">1,840 kcal</span>
+            </div>
+            <div class="mock-cal-row">
+              <span class="mock-cal-label">Remaining</span>
+              <span class="mock-cal-val">360 kcal</span>
+            </div>
+            <div class="progress-bar" style="margin-top: var(--space-sm);">
+              <div class="progress-fill" style="width: 83.6%;"></div>
+            </div>
+            <div class="mock-status">On Track ✅</div>
+          </div>
+          <div class="divider"></div>
+          <div class="mock-meals">
+            <div class="mock-meal-item">
+              <span>Oatmeal with banana</span>
+              <span class="mock-meal-cal">380 kcal</span>
+            </div>
+            <div class="mock-meal-item">
+              <span>Grilled chicken salad</span>
+              <span class="mock-meal-cal">420 kcal</span>
+            </div>
+            <div class="mock-meal-item">
+              <span>Protein shake</span>
+              <span class="mock-meal-cal">220 kcal</span>
+            </div>
+            <div class="mock-meal-item">
+              <span>Greek yogurt</span>
+              <span class="mock-meal-cal">150 kcal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Band -->
+  <section class="cta-band">
+    <div class="container cta-inner">
+      <h2 class="section-heading cta-heading">Ready to finally know<br />what you're eating?</h2>
+      <p class="text-body-lg" style="margin-top: var(--space-md); max-width: 480px; text-align: center;">
+        Free. No signup. No app. Works on any device. Your data never leaves your browser.
+      </p>
+      <div class="cta-buttons">
+        <a href="/calculator" class="btn-primary">Calculate My Calories</a>
+        <a href="/dashboard" class="btn-secondary">View Dashboard</a>
+      </div>
+    </div>
+  </section>
 </Layout>
+
+<style>
+  /* ── Hero ── */
+  .hero-band {
+    position: relative;
+    background: var(--color-canvas);
+    padding: var(--space-5xl) var(--space-lg) var(--space-4xl);
+    overflow: hidden;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .hero-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(16, 185, 129, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-lg);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .hero-eyebrow-row { display: flex; justify-content: center; }
+  .eyebrow-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    gap: var(--space-xs);
+  }
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .hero-br { display: none; }
+  .hero-subheadline {
+    font-size: 18px;
+    color: var(--color-body);
+    line-height: 28px;
+    max-width: 560px;
+  }
+  .hero-cta-row {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--space-xs);
+  }
+  .btn-hero { font-size: 16px; padding: 14px var(--space-xl); }
+  .hero-note { font-size: 13px; color: var(--color-mute); font-family: var(--font-mono); }
+  .hidden { display: none !important; }
+
+  /* ── Trust Band ── */
+  .trust-band {
+    background: var(--color-canvas-soft);
+    border-bottom: 1px solid var(--color-hairline);
+    padding: var(--space-md) 0;
+  }
+  .trust-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 13px;
+    color: var(--color-body);
+  }
+  .trust-item svg { color: var(--color-accent); flex-shrink: 0; }
+  .trust-divider { width: 1px; height: 16px; background: var(--color-hairline); }
+
+  /* ── Features ── */
+  .features-band {
+    background: var(--color-canvas-soft);
+    padding: var(--space-5xl) 0;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .features-header {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto var(--space-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .features-subtitle { color: var(--color-body); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+  .feature-card { display: flex; flex-direction: column; gap: var(--space-sm); }
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .feature-icon-blue { background: var(--color-blue-soft); color: var(--color-blue); }
+  .feature-icon-green { background: var(--color-accent-soft); color: var(--color-accent-deep); }
+  .feature-icon-orange { background: var(--color-warning-soft); color: var(--color-warning-deep); }
+  .feature-title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: var(--color-ink); }
+  .feature-desc { color: var(--color-body); font-size: 14px; line-height: 20px; flex: 1; }
+  .feature-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xxs);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-accent-deep);
+    margin-top: auto;
+    transition: gap 0.2s;
+  }
+  .feature-link:hover { gap: var(--space-xs); }
+
+  /* ── Steps Band ── */
+  .steps-band {
+    background: var(--color-canvas);
+    padding: var(--space-5xl) 0;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .steps-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4xl);
+    align-items: center;
+  }
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+    list-style: none;
+  }
+  .step-item {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-accent);
+    font-weight: 600;
+    padding-top: 2px;
+    flex-shrink: 0;
+    width: 24px;
+  }
+  .step-item strong { font-size: 15px; font-weight: 600; display: block; margin-bottom: 2px; }
+  .step-item .text-body { font-size: 14px; margin-top: var(--space-xxs); }
+
+  /* Mock dashboard visual */
+  .steps-visual { display: flex; flex-direction: column; gap: var(--space-md); }
+  .mock-streak { text-align: center; }
+  .mock-streak-icon { font-size: 36px; }
+  .mock-streak-count { font-size: 48px; font-weight: 700; letter-spacing: -2px; color: var(--color-ink); line-height: 1; margin-top: var(--space-xs); }
+  .mock-streak-label { font-size: 14px; color: var(--color-mute); margin-top: var(--space-xxs); }
+  .mock-cal-row { display: flex; justify-content: space-between; font-size: 14px; padding: var(--space-xxs) 0; }
+  .mock-cal-label { color: var(--color-body); }
+  .mock-cal-val { font-weight: 500; }
+  .mock-val-green { color: var(--color-accent-deep); }
+  .mock-status { text-align: center; font-size: 14px; font-weight: 500; margin-top: var(--space-sm); color: var(--color-accent-deep); }
+  .mock-meals { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .mock-meal-item { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-body); }
+  .mock-meal-cal { font-weight: 500; color: var(--color-ink); }
+
+  /* ── CTA Band — intentionally always dark, never flips with dark mode ── */
+  .cta-band {
+    background: #0d0d0d;
+    padding: var(--space-5xl) var(--space-lg);
+  }
+  .cta-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-md);
+  }
+  .cta-heading { color: #f5f5f5; }
+  .cta-band .text-body-lg { color: #888888; }
+  .cta-buttons { display: flex; gap: var(--space-sm); flex-wrap: wrap; justify-content: center; margin-top: var(--space-md); }
+  .cta-band .btn-primary { background: #f5f5f5; color: #0d0d0d; }
+  .cta-band .btn-primary:hover { opacity: 0.9; }
+  .cta-band .btn-secondary { background: transparent; color: #888888; border-color: #333; }
+  .cta-band .btn-secondary:hover { background: #1a1a1a; border-color: #555; color: #f5f5f5; }
+
+  /* ── Responsive ── */
+  @media (min-width: 768px) {
+    .hero-br { display: block; }
+  }
+  @media (max-width: 900px) {
+    .features-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+    .steps-inner { grid-template-columns: 1fr; gap: var(--space-xl); }
+    .steps-visual { display: none; }
+    .trust-divider { display: none; }
+    .trust-inner { flex-direction: column; gap: var(--space-sm); align-items: flex-start; padding: 0 var(--space-md); }
+  }
+  @media (max-width: 600px) {
+    .hero-band { padding: var(--space-4xl) var(--space-md) var(--space-3xl); }
+    .btn-hero { width: 100%; justify-content: center; }
+    .hero-cta-row { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
+    .features-band { padding: var(--space-3xl) 0; }
+    .steps-band { padding: var(--space-3xl) 0; }
+    .cta-band { padding: var(--space-3xl) var(--space-md); }
+  }
+</style>
+
+<script>
+  const tdee = localStorage.getItem('cm_tdee');
+  if (tdee) {
+    const primaryCta = document.getElementById('hero-primary-cta');
+    const dashboardCta = document.getElementById('hero-dashboard-cta');
+    if (primaryCta) primaryCta.classList.add('hidden');
+    if (dashboardCta) dashboardCta.classList.remove('hidden');
+  }
+</script>

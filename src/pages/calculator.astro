@@ -1,0 +1,466 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CalorieMetric Calculator",
+  "url": "https://caloriemetric.com/calculator",
+  "description": "Free calorie maintenance calculator using the Mifflin-St Jeor equation.",
+  "applicationCategory": "HealthApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+};
+---
+
+<Layout
+  title="Calorie Calculator — CalorieMetric"
+  description="Calculate your daily maintenance calories using the Mifflin-St Jeor formula. Supports imperial and metric units. Free, no signup needed."
+  jsonLd={jsonLd}
+>
+  <section class="calc-page">
+    <div class="container">
+      <div class="calc-layout">
+
+        <!-- Left: Form -->
+        <div class="calc-main">
+          <div class="calc-header">
+            <p class="eyebrow">Step 1 of 2</p>
+            <h1 class="section-heading" style="margin-top: var(--space-xs);">Let's find your maintenance calories.</h1>
+            <p class="text-body" style="margin-top: var(--space-sm);">
+              We use the scientifically-validated Mifflin-St Jeor equation for the most accurate estimate.
+            </p>
+          </div>
+
+          <form id="calc-form" class="calc-form card-lg" novalidate>
+            <!-- Unit system toggle -->
+            <div class="form-group">
+              <span class="form-label">Unit system</span>
+              <div class="toggle-group" role="group" aria-label="Select unit system">
+                <button type="button" class="toggle-option active" id="unit-imperial" data-unit="imperial" aria-pressed="true">Imperial (lbs, ft/in)</button>
+                <button type="button" class="toggle-option" id="unit-metric" data-unit="metric" aria-pressed="false">Metric (kg, cm)</button>
+              </div>
+            </div>
+
+            <!-- Age -->
+            <div class="form-group">
+              <label class="form-label" for="age">Age</label>
+              <input class="form-input" type="number" id="age" name="age" min="10" max="120" placeholder="e.g. 28" required />
+            </div>
+
+            <!-- Sex -->
+            <div class="form-group">
+              <span class="form-label">Sex assigned at birth</span>
+              <div class="toggle-group" role="group" aria-label="Select sex">
+                <button type="button" class="toggle-option active" id="gender-male" data-gender="male" aria-pressed="true">Male</button>
+                <button type="button" class="toggle-option" id="gender-female" data-gender="female" aria-pressed="false">Female</button>
+              </div>
+            </div>
+
+            <!-- Height: Imperial -->
+            <div class="form-group" id="height-imperial">
+              <span class="form-label">Height</span>
+              <div class="height-row">
+                <div class="height-field">
+                  <input class="form-input" type="number" id="height-ft" name="heightFt" min="3" max="8" placeholder="5" />
+                  <span class="height-unit">ft</span>
+                </div>
+                <div class="height-field">
+                  <input class="form-input" type="number" id="height-in" name="heightIn" min="0" max="11" placeholder="9" />
+                  <span class="height-unit">in</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Height: Metric -->
+            <div class="form-group hidden" id="height-metric">
+              <label class="form-label" for="height-cm">Height</label>
+              <div class="height-field">
+                <input class="form-input" type="number" id="height-cm" name="heightCm" min="100" max="250" placeholder="e.g. 175" />
+                <span class="height-unit">cm</span>
+              </div>
+            </div>
+
+            <!-- Weight: Imperial -->
+            <div class="form-group" id="weight-imperial">
+              <label class="form-label" for="weight-lbs">Weight</label>
+              <div class="height-field">
+                <input class="form-input" type="number" id="weight-lbs" name="weightLbs" min="50" max="700" step="0.5" placeholder="e.g. 170" />
+                <span class="height-unit">lbs</span>
+              </div>
+            </div>
+
+            <!-- Weight: Metric -->
+            <div class="form-group hidden" id="weight-metric">
+              <label class="form-label" for="weight-kg">Weight</label>
+              <div class="height-field">
+                <input class="form-input" type="number" id="weight-kg" name="weightKg" min="30" max="300" step="0.1" placeholder="e.g. 77" />
+                <span class="height-unit">kg</span>
+              </div>
+            </div>
+
+            <!-- Activity Level -->
+            <div class="form-group">
+              <label class="form-label" for="activity">Activity Level</label>
+              <select class="form-select" id="activity" name="activityLevel" required>
+                <option value="">Select your activity level…</option>
+                <option value="sedentary">Sedentary — desk job, little to no exercise</option>
+                <option value="light">Lightly Active — light exercise 1–3 days/week</option>
+                <option value="moderate">Moderately Active — moderate exercise 3–5 days/week</option>
+                <option value="very">Very Active — hard exercise 6–7 days/week</option>
+                <option value="extra">Extra Active — very hard exercise, physical job</option>
+              </select>
+              <p class="form-hint">Honest assessment gives you the most useful number.</p>
+            </div>
+
+            <div id="form-error" class="form-error hidden" role="alert">
+              Please fill in all fields before calculating.
+            </div>
+
+            <button type="submit" class="btn-primary calc-submit">
+              Calculate My Calories
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            </button>
+          </form>
+
+          <!-- Result: TDEE + breakdown (hidden until calculated) -->
+          <div id="calc-result" class="calc-result card-lg hidden" role="region" aria-live="polite">
+            <div class="result-header">
+              <div class="result-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div>
+                <p class="eyebrow">Your maintenance calories</p>
+                <p class="result-number" id="result-tdee">—</p>
+                <p class="result-unit">kcal / day</p>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <p class="result-explanation" id="result-explanation"></p>
+            <div class="result-breakdown" id="result-breakdown"></div>
+
+            <!-- Step 2: Goal selection -->
+            <div class="divider"></div>
+            <div class="goal-picker">
+              <p class="eyebrow" style="margin-bottom: var(--space-md);">Step 2 of 2 — Pick your goal</p>
+              <div class="goal-cards" id="goal-cards">
+                <button type="button" class="goal-pick-card" id="goal-lose" data-goal="lose">
+                  <span class="goal-pick-emoji">🔥</span>
+                  <span class="goal-pick-label">Lose Weight</span>
+                  <span class="goal-pick-cal" id="goal-lose-cal">—</span>
+                  <span class="goal-pick-hint">kcal/day · −500 deficit</span>
+                </button>
+                <button type="button" class="goal-pick-card" id="goal-maintain" data-goal="maintain">
+                  <span class="goal-pick-emoji">⚖️</span>
+                  <span class="goal-pick-label">Maintain Weight</span>
+                  <span class="goal-pick-cal" id="goal-maintain-cal">—</span>
+                  <span class="goal-pick-hint">kcal/day · maintenance</span>
+                </button>
+                <button type="button" class="goal-pick-card" id="goal-gain" data-goal="gain">
+                  <span class="goal-pick-emoji">💪</span>
+                  <span class="goal-pick-label">Gain Weight</span>
+                  <span class="goal-pick-cal" id="goal-gain-cal">—</span>
+                  <span class="goal-pick-hint">kcal/day · +300 surplus</span>
+                </button>
+              </div>
+              <p class="goal-pick-prompt">Tap a goal to continue →</p>
+            </div>
+
+            <div class="divider"></div>
+            <div class="result-actions">
+              <button type="button" class="btn-secondary btn-sm" id="recalc-btn">Recalculate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Info Panel -->
+        <aside class="calc-sidebar">
+          <div class="info-card card">
+            <h2 class="info-title">About the formula</h2>
+            <p class="text-body info-desc">
+              The <strong>Mifflin-St Jeor equation</strong> (1990) is considered the gold standard for estimating basal metabolic rate (BMR) — the calories your body burns at complete rest.
+            </p>
+            <p class="text-body info-desc" style="margin-top: var(--space-sm);">
+              Your TDEE (Total Daily Energy Expenditure) is your BMR multiplied by an activity factor, giving you the calories needed to maintain your current weight.
+            </p>
+            <div class="formula-block">
+              <p class="eyebrow" style="margin-bottom: var(--space-xs);">BMR formula</p>
+              <code class="formula-code">Male: (10 × kg) + (6.25 × cm) − (5 × age) + 5</code>
+              <code class="formula-code">Female: (10 × kg) + (6.25 × cm) − (5 × age) − 161</code>
+            </div>
+          </div>
+
+          <div class="info-card card" style="margin-top: var(--space-md);">
+            <h2 class="info-title">Activity multipliers</h2>
+            <div class="activity-table">
+              <div class="activity-row"><span class="activity-name">Sedentary</span><span class="activity-mult">× 1.2</span></div>
+              <div class="activity-row"><span class="activity-name">Lightly Active</span><span class="activity-mult">× 1.375</span></div>
+              <div class="activity-row"><span class="activity-name">Moderately Active</span><span class="activity-mult">× 1.55</span></div>
+              <div class="activity-row"><span class="activity-name">Very Active</span><span class="activity-mult">× 1.725</span></div>
+              <div class="activity-row"><span class="activity-name">Extra Active</span><span class="activity-mult">× 1.9</span></div>
+            </div>
+          </div>
+
+          <div class="info-card card" style="margin-top: var(--space-md);">
+            <h2 class="info-title">Why not BMI?</h2>
+            <p class="text-body info-desc">BMI ignores muscle mass, age, and activity — making it a poor predictor of metabolic rate. Mifflin-St Jeor accounts for body composition more accurately.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .calc-page { padding: var(--space-4xl) 0 var(--space-5xl); }
+  .calc-layout { display: grid; grid-template-columns: 1fr 340px; gap: var(--space-xl); align-items: start; }
+  .calc-header { margin-bottom: var(--space-xl); }
+  .calc-form { display: flex; flex-direction: column; gap: var(--space-lg); }
+  .height-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  .height-field { position: relative; }
+  .height-field .form-input { padding-right: 40px; }
+  .height-unit { position: absolute; right: var(--space-sm); top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--color-mute); pointer-events: none; }
+  .calc-submit { width: 100%; justify-content: center; }
+  .form-error { background: var(--color-error-soft); color: var(--color-error); font-size: 14px; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm); border: 1px solid #fca5a5; }
+
+  /* Result */
+  .calc-result { margin-top: var(--space-md); }
+  .result-header { display: flex; gap: var(--space-md); align-items: flex-start; }
+  .result-badge { width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--color-accent-soft); color: var(--color-accent-deep); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .result-number { font-size: 48px; font-weight: 700; letter-spacing: -2px; line-height: 1; color: var(--color-ink); }
+  .result-unit { font-size: 14px; color: var(--color-mute); margin-top: var(--space-xxs); font-family: var(--font-mono); }
+  .result-explanation { font-size: 16px; color: var(--color-body); line-height: 24px; }
+  .result-breakdown { display: flex; gap: var(--space-md); flex-wrap: wrap; margin-top: var(--space-sm); }
+  .breakdown-item { display: flex; flex-direction: column; gap: 2px; }
+  .breakdown-label { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; }
+  .breakdown-val { font-size: 16px; font-weight: 600; color: var(--color-ink); }
+
+  /* Goal picker */
+  .goal-picker {}
+  .goal-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); }
+  .goal-pick-card {
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);
+    padding: var(--space-md) var(--space-sm);
+    border: 2px solid var(--color-hairline);
+    border-radius: var(--radius-lg);
+    background: var(--color-canvas-soft);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    text-align: center;
+  }
+  .goal-pick-card:hover { border-color: var(--color-accent); background: var(--color-accent-soft); transform: translateY(-2px); }
+  .goal-pick-card.selected { border-color: var(--color-accent); background: var(--color-accent-soft); }
+  .goal-pick-emoji { font-size: 28px; }
+  .goal-pick-label { font-size: 13px; font-weight: 600; color: var(--color-ink); }
+  .goal-pick-cal { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--color-accent-deep); }
+  .goal-pick-hint { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
+  .goal-pick-prompt { font-size: 13px; color: var(--color-mute); margin-top: var(--space-sm); text-align: center; font-family: var(--font-mono); }
+
+  .result-actions { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; }
+
+  /* Sidebar */
+  .info-card { padding: var(--space-lg); }
+  .info-title { font-size: 15px; font-weight: 600; margin-bottom: var(--space-sm); }
+  .info-desc { font-size: 14px; color: var(--color-body); line-height: 20px; }
+  .formula-block { margin-top: var(--space-md); background: var(--color-canvas-soft-2); border-radius: var(--radius-sm); padding: var(--space-sm); }
+  .formula-code { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--color-body); line-height: 18px; }
+  .activity-table { display: flex; flex-direction: column; }
+  .activity-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-hairline); font-size: 13px; }
+  .activity-row:last-child { border-bottom: none; }
+  .activity-name { color: var(--color-body); }
+  .activity-mult { font-family: var(--font-mono); font-weight: 600; color: var(--color-ink); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 900px) {
+    .calc-layout { grid-template-columns: 1fr; }
+    .calc-sidebar { order: -1; }
+  }
+  @media (max-width: 600px) {
+    .calc-page { padding: var(--space-xl) 0 var(--space-3xl); }
+    .goal-cards { grid-template-columns: 1fr; }
+    .result-actions { flex-direction: column; }
+  }
+</style>
+
+<script>
+  const ACTIVITY_MULTIPLIERS: Record<string, number> = {
+    sedentary: 1.2, light: 1.375, moderate: 1.55, very: 1.725, extra: 1.9,
+  };
+  const ACTIVITY_LABELS: Record<string, string> = {
+    sedentary: 'Sedentary', light: 'Lightly Active', moderate: 'Moderately Active',
+    very: 'Very Active', extra: 'Extra Active',
+  };
+  const GOAL_LABELS: Record<string, string> = {
+    lose: 'Lose Weight', maintain: 'Maintain Weight', gain: 'Gain Weight',
+  };
+
+  let selectedGender = 'male';
+  let selectedUnit = (localStorage.getItem('cm_units') as 'imperial' | 'metric') || 'imperial';
+  let calculatedTdee = 0;
+
+  // ── Unit toggle ──
+  function applyUnit(unit: string) {
+    selectedUnit = unit as 'imperial' | 'metric';
+    localStorage.setItem('cm_units', unit);
+    document.querySelectorAll('[data-unit]').forEach(btn => {
+      btn.classList.toggle('active', (btn as HTMLElement).dataset.unit === unit);
+      btn.setAttribute('aria-pressed', String((btn as HTMLElement).dataset.unit === unit));
+    });
+    document.getElementById('height-imperial')!.classList.toggle('hidden', unit === 'metric');
+    document.getElementById('height-metric')!.classList.toggle('hidden', unit === 'imperial');
+    document.getElementById('weight-imperial')!.classList.toggle('hidden', unit === 'metric');
+    document.getElementById('weight-metric')!.classList.toggle('hidden', unit === 'imperial');
+  }
+  applyUnit(selectedUnit);
+  document.querySelectorAll('[data-unit]').forEach(btn => {
+    btn.addEventListener('click', () => applyUnit((btn as HTMLElement).dataset.unit!));
+  });
+
+  // ── Gender toggle ──
+  document.querySelectorAll('[data-gender]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedGender = (btn as HTMLElement).dataset.gender!;
+      document.querySelectorAll('[data-gender]').forEach(b => {
+        b.classList.toggle('active', (b as HTMLElement).dataset.gender === selectedGender);
+        b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.gender === selectedGender));
+      });
+    });
+  });
+
+  // ── Pre-fill from localStorage ──
+  const savedProfile = localStorage.getItem('cm_profile');
+  if (savedProfile) {
+    try {
+      const p = JSON.parse(savedProfile);
+      const get = (id: string) => document.getElementById(id) as HTMLInputElement | null;
+      if (p.age) get('age')!.value = p.age;
+      if (p.heightFt) get('height-ft')!.value = p.heightFt;
+      if (p.heightIn !== undefined) get('height-in')!.value = p.heightIn;
+      if (p.heightCm) get('height-cm')!.value = p.heightCm;
+      if (p.weightLbs) get('weight-lbs')!.value = p.weightLbs;
+      if (p.weightKg) get('weight-kg')!.value = p.weightKg;
+      if (p.activityLevel) (document.getElementById('activity') as HTMLSelectElement).value = p.activityLevel;
+      if (p.gender) {
+        selectedGender = p.gender;
+        document.querySelectorAll('[data-gender]').forEach(b => {
+          b.classList.toggle('active', (b as HTMLElement).dataset.gender === p.gender);
+          b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.gender === p.gender));
+        });
+      }
+      if (p.units) applyUnit(p.units);
+    } catch {}
+  }
+
+  // ── Form submission ──
+  const form = document.getElementById('calc-form') as HTMLFormElement;
+  const resultEl = document.getElementById('calc-result')!;
+  const errorEl = document.getElementById('form-error')!;
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const age = parseFloat((document.getElementById('age') as HTMLInputElement).value);
+    const activityLevel = (document.getElementById('activity') as HTMLSelectElement).value;
+
+    let kg: number, cm: number;
+    if (selectedUnit === 'imperial') {
+      const ft = parseFloat((document.getElementById('height-ft') as HTMLInputElement).value);
+      const inches = parseFloat((document.getElementById('height-in') as HTMLInputElement).value);
+      const lbs = parseFloat((document.getElementById('weight-lbs') as HTMLInputElement).value);
+      if (!age || !ft || isNaN(inches) || !lbs || !activityLevel) {
+        errorEl.classList.remove('hidden'); return;
+      }
+      kg = lbs / 2.205;
+      cm = (ft * 12 + inches) * 2.54;
+    } else {
+      const heightCm = parseFloat((document.getElementById('height-cm') as HTMLInputElement).value);
+      const weightKg = parseFloat((document.getElementById('weight-kg') as HTMLInputElement).value);
+      if (!age || !heightCm || !weightKg || !activityLevel) {
+        errorEl.classList.remove('hidden'); return;
+      }
+      kg = weightKg;
+      cm = heightCm;
+    }
+    errorEl.classList.add('hidden');
+
+    const multiplier = ACTIVITY_MULTIPLIERS[activityLevel];
+    const bmr = selectedGender === 'male'
+      ? (10 * kg) + (6.25 * cm) - (5 * age) + 5
+      : (10 * kg) + (6.25 * cm) - (5 * age) - 161;
+    calculatedTdee = Math.round(bmr * multiplier);
+
+    // Save profile
+    const profile: Record<string, unknown> = { age, gender: selectedGender, activityLevel, units: selectedUnit };
+    if (selectedUnit === 'imperial') {
+      profile.heightFt = parseFloat((document.getElementById('height-ft') as HTMLInputElement).value);
+      profile.heightIn = parseFloat((document.getElementById('height-in') as HTMLInputElement).value);
+      profile.weightLbs = parseFloat((document.getElementById('weight-lbs') as HTMLInputElement).value);
+    } else {
+      profile.heightCm = cm;
+      profile.weightKg = kg;
+    }
+    localStorage.setItem('cm_tdee', String(calculatedTdee));
+    localStorage.setItem('cm_profile', JSON.stringify(profile));
+
+    // Display TDEE
+    document.getElementById('result-tdee')!.textContent = calculatedTdee.toLocaleString();
+    document.getElementById('result-explanation')!.textContent =
+      `Eating around ${calculatedTdee.toLocaleString()} kcal/day keeps your weight stable. Now pick a goal below.`;
+
+    const weightDisplay = selectedUnit === 'imperial'
+      ? `${profile.weightLbs} lbs / ${kg.toFixed(1)} kg`
+      : `${kg.toFixed(1)} kg`;
+    document.getElementById('result-breakdown')!.innerHTML = `
+      <div class="breakdown-item">
+        <span class="breakdown-label">BMR</span>
+        <span class="breakdown-val">${Math.round(bmr).toLocaleString()} kcal</span>
+      </div>
+      <div class="breakdown-item">
+        <span class="breakdown-label">Activity</span>
+        <span class="breakdown-val">${ACTIVITY_LABELS[activityLevel]} (×${multiplier})</span>
+      </div>
+      <div class="breakdown-item">
+        <span class="breakdown-label">Weight</span>
+        <span class="breakdown-val">${weightDisplay}</span>
+      </div>
+    `;
+
+    // Populate goal cards
+    const loseCal = calculatedTdee - 500;
+    const gainCal = calculatedTdee + 300;
+    document.getElementById('goal-lose-cal')!.textContent = loseCal.toLocaleString();
+    document.getElementById('goal-maintain-cal')!.textContent = calculatedTdee.toLocaleString();
+    document.getElementById('goal-gain-cal')!.textContent = gainCal.toLocaleString();
+
+    // Clear any prior selection
+    document.querySelectorAll('.goal-pick-card').forEach(c => c.classList.remove('selected'));
+
+    form.classList.add('hidden');
+    resultEl.classList.remove('hidden');
+    resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // ── Goal selection ──
+  const GOAL_OFFSETS: Record<string, number> = { lose: -500, maintain: 0, gain: 300 };
+  document.querySelectorAll('.goal-pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const goal = (card as HTMLElement).dataset.goal!;
+      const target = calculatedTdee + GOAL_OFFSETS[goal];
+      localStorage.setItem('cm_goal', goal);
+      localStorage.setItem('cm_target', String(target));
+
+      document.querySelectorAll('.goal-pick-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      // Brief flash, then navigate
+      setTimeout(() => { window.location.href = '/dashboard'; }, 300);
+    });
+  });
+
+  // ── Recalculate ──
+  document.getElementById('recalc-btn')?.addEventListener('click', () => {
+    resultEl.classList.add('hidden');
+    form.classList.remove('hidden');
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>

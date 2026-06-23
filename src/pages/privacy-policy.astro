@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout
+  title="Privacy Policy — CalorieMetric"
+  description="CalorieMetric's privacy policy. We collect no personal data. All your information is stored locally in your browser."
+>
+  <div class="container">
+    <div class="prose-page">
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy Policy</h1>
+      <p><em>Last updated: June 2026</em></p>
+
+      <h2>Overview</h2>
+      <p>
+        CalorieMetric is designed to be private by default. We do not collect, store, or transmit your personal information. This policy explains exactly what data is used and how.
+      </p>
+
+      <h2>Data stored locally</h2>
+      <p>
+        All your information — calorie goals, meal logs, streaks, and profile data — is stored in your browser's <strong>localStorage</strong>. This data never leaves your device and is not accessible to us or any third party. Clearing your browser data will erase all stored information.
+      </p>
+      <p>The following keys are stored in localStorage:</p>
+      <ul>
+        <li><code>cm_tdee</code> — your calculated maintenance calories</li>
+        <li><code>cm_target</code> — your chosen daily calorie target</li>
+        <li><code>cm_goal</code> — your selected goal (lose/maintain/gain)</li>
+        <li><code>cm_profile</code> — your age, height, weight, and activity level</li>
+        <li><code>cm_logs</code> — your meal entries by date and section</li>
+        <li><code>cm_streak</code> — your current and longest streak data</li>
+        <li><code>cm_badges</code> — earned achievement badges</li>
+        <li><code>cm_units</code> — your preferred unit system (imperial/metric)</li>
+        <li><code>cm_darkmode</code> — your display preference</li>
+      </ul>
+
+      <h2>AI calorie estimates</h2>
+      <p>
+        When you log a meal, the text you enter is sent to a third-party AI API (Groq, using the Llama model) to estimate calories. <strong>We do not log, store, or retain this data on our servers.</strong> The query is sent directly from your browser to Groq's API. Please refer to <a href="https://groq.com/privacy-policy" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent-deep); text-decoration: underline;">Groq's Privacy Policy</a> for their data practices.
+      </p>
+
+      <h2>Analytics &amp; advertising</h2>
+      <p>
+        CalorieMetric may display advertisements via Google AdSense to support the free service. Google AdSense uses cookies to serve personalised ads based on your browsing activity. You can opt out of personalised advertising via <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent-deep); text-decoration: underline;">Google Ad Settings</a>.
+      </p>
+      <p>We do not use any analytics services (no Google Analytics, no tracking pixels).</p>
+
+      <h2>Cookies</h2>
+      <p>CalorieMetric itself does not set any cookies. Google AdSense may set cookies for advertising purposes.</p>
+
+      <h2>Children's privacy</h2>
+      <p>CalorieMetric is not directed at children under 13. We do not knowingly collect any information from children.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>We may update this policy as the product evolves. Continued use of the site after changes constitutes acceptance of the updated policy.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about this policy? Email us at <a href="mailto:hello@caloriemetric.com" style="color: var(--color-accent-deep); text-decoration: underline;">hello@caloriemetric.com</a>.</p>
+    </div>
+  </div>
+</Layout>

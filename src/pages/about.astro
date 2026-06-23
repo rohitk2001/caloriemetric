@@ -1,0 +1,45 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout
+  title="About CalorieMetric — Free Calorie Tracker, No Signup"
+  description="CalorieMetric is a free, privacy-first calorie tracking tool. No account, no ads, no data sent to servers. Everything runs in your browser."
+>
+  <div class="container">
+    <div class="prose-page">
+      <p class="eyebrow">About</p>
+      <h1>CalorieMetric — built to stay free, forever.</h1>
+      <p>
+        CalorieMetric is a lightweight calorie tracking tool designed for people who want accurate nutritional awareness without the overhead of signing up for yet another app.
+      </p>
+
+      <h2>What it does</h2>
+      <p>
+        You enter your stats once — age, height, weight, activity level — and CalorieMetric calculates your maintenance calories using the Mifflin-St Jeor equation, the gold standard formula used by nutritionists worldwide. Then you log your meals in plain English and we estimate the calories using AI. Build a daily streak by staying within your goal.
+      </p>
+
+      <h2>Who it's for</h2>
+      <p>
+        Anyone who wants a simple, honest answer to "am I eating too much or too little?" — without subscriptions, paywalls, or being asked to enter a credit card. Whether you're trying to lose weight, gain muscle, or simply stay stable, CalorieMetric gives you the number you need.
+      </p>
+
+      <h2>Our principles</h2>
+      <ul>
+        <li><strong>Free forever.</strong> No premium tier, no freemium bait-and-switch.</li>
+        <li><strong>No account required.</strong> Your data lives in your browser's localStorage, not our servers.</li>
+        <li><strong>No personal data collected.</strong> We don't know who you are and we prefer it that way.</li>
+        <li><strong>Fast.</strong> No app store download, no install, no wait. Open the URL and start.</li>
+      </ul>
+
+      <h2>The technology</h2>
+      <p>
+        CalorieMetric is built with Astro JS, a modern static site framework. Calorie estimates for meals are powered by AI (Groq / Llama) — your food queries are sent to the API but not stored or logged on our end. All your personal data (goals, logs, streaks) stays exclusively in your browser.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions or feedback? Reach us at <a href="mailto:hello@caloriemetric.com" style="color: var(--color-accent-deep); text-decoration: underline;">hello@caloriemetric.com</a>.
+      </p>
+    </div>
+  </div>
+</Layout>

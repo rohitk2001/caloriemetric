@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://caloriemetric.com/sitemap-index.xml
