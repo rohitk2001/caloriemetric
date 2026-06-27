@@ -995,7 +995,7 @@ import Layout from '../layouts/Layout.astro';
           }),
         });
       } else {
-        res = await fetch('/api/meal-lookup', {
+        res = await fetch('https://caloriemetric-api.rohitkhandelwal2001.workers.dev', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ input: sanitizedQuery }),
