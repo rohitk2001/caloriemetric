@@ -975,35 +975,22 @@ import Layout from '../layouts/Layout.astro';
     resultsEl.classList.add('hidden');
 
     try {
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      let res;
-      if (isLocalhost) {
-        res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.PUBLIC_GROQ_API_KEY_DEV}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: 'You are a nutrition expert. Only respond about food and calories. If asked about anything else, respond with: {"error": "not food"}. Always return valid JSON only. Format: {"foods": [{"name": "food name", "calories": number, "portion": "portion description"}], "total_calories": number, "confidence": "high/medium/low"}' },
-              { role: 'user', content: `Food description: """${sanitizedQuery}"""` },
-            ],
-            temperature: 0.1,
-            max_tokens: 500,
-          }),
-        });
-      } else {
-        res = await fetch('https://caloriemetric-api.rohitkhandelwal2001.workers.dev', {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ input: sanitizedQuery }),
-        });
-      }
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.PUBLIC_GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: 'You are a nutrition expert. Only respond about food and calories. If asked about anything else, respond with: {"error": "not food"}. Always return valid JSON only. Format: {"foods": [{"name": "food name", "calories": number, "portion": "portion description"}], "total_calories": number, "confidence": "high/medium/low"}' },
+            { role: 'user', content: `Food description: """${sanitizedQuery}"""` },
+          ],
+          temperature: 0.1,
+          max_tokens: 500,
+        }),
+      });
 
       if (res.status === 429) {
         statusEl.classList.add('hidden');
