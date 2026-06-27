@@ -1,15 +1,7 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  const origin = request.headers.get('Origin') || '';
-  const isAllowed = origin.includes('caloriemetric.com') || origin === '';
-
-  if (!isAllowed) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
-  }
+  const origin = request.headers.get('Origin') || 'https://caloriemetric.com';
 
   let body;
   try {
