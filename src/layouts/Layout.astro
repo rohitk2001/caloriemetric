@@ -17,7 +17,7 @@ const ogD = ogDescription ?? description;
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <title>{title}</title>
@@ -60,6 +60,7 @@ const ogD = ogDescription ?? description;
 
         <nav class="nav-links" role="navigation" aria-label="Main navigation">
           <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/recipes" class="nav-link">Recipes</a>
           <a href="/streaks" class="nav-link">Streaks</a>
           <a href="/calculator" class="nav-link">Recalculate</a>
         </nav>
@@ -73,6 +74,12 @@ const ogD = ogDescription ?? description;
           <a href="/calculator" class="btn-nav-primary">Get Started</a>
         </div>
 
+        <!-- Mobile-only dark toggle (visible beside hamburger) -->
+        <button class="dark-toggle dark-toggle-mobile" id="dark-toggle-mobile" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+
         <button class="hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu">
           <span></span><span></span><span></span>
         </button>
@@ -82,9 +89,18 @@ const ogD = ogDescription ?? description;
     <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
       <nav>
         <a href="/dashboard" class="mobile-link">Dashboard</a>
+        <a href="/recipes" class="mobile-link">Recipes</a>
         <a href="/streaks" class="mobile-link">Streaks</a>
         <a href="/calculator" class="mobile-link">Recalculate</a>
         <a href="/calculator" class="btn-nav-primary mobile-cta">Get Started</a>
+        <!-- Dark mode toggle inside mobile menu -->
+        <button class="mobile-dark-toggle" id="dark-toggle-menu" aria-label="Toggle dark mode">
+          <span class="mobile-dark-toggle-icon">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span class="mobile-dark-toggle-label">Toggle dark mode</span>
+        </button>
       </nav>
     </div>
 
@@ -134,11 +150,13 @@ const ogD = ogDescription ?? description;
       });
 
       // ── Dark mode toggle ──
-      const darkToggle = document.getElementById('dark-toggle') as HTMLButtonElement;
-      darkToggle?.addEventListener('click', () => {
+      function toggleDark() {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('cm_darkmode', String(isDark));
-      });
+      }
+      document.getElementById('dark-toggle')?.addEventListener('click', toggleDark);
+      document.getElementById('dark-toggle-mobile')?.addEventListener('click', toggleDark);
+      document.getElementById('dark-toggle-menu')?.addEventListener('click', toggleDark);
     </script>
   </body>
 </html>
@@ -326,12 +344,25 @@ const ogD = ogDescription ?? description;
   .btn-nav-primary:hover { opacity: 0.85; }
 
   /* ── Hamburger ── */
+  .dark-toggle-mobile {
+    display: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    align-items: center;
+    justify-content: center;
+    color: var(--color-body);
+    transition: color 0.2s, background 0.2s;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .dark-toggle-mobile:hover { color: var(--color-ink); background: var(--color-canvas-soft-2); }
+
   .hamburger {
     display: none;
     flex-direction: column;
     gap: 5px;
     padding: var(--space-xs);
-    margin-left: auto;
     border-radius: var(--radius-sm);
   }
   .hamburger span {
@@ -367,6 +398,17 @@ const ogD = ogDescription ?? description;
     border-bottom: 1px solid var(--color-hairline);
   }
   .mobile-cta { margin-top: var(--space-sm); align-self: flex-start; padding: 0 var(--space-md); height: 36px; }
+  .mobile-dark-toggle {
+    display: flex; align-items: center; gap: var(--space-sm);
+    min-height: 44px; padding: var(--space-sm) var(--space-xs);
+    font-size: 16px; color: var(--color-body);
+    border-bottom: 1px solid var(--color-hairline);
+    border-radius: 0; background: none; width: 100%;
+    transition: color 0.2s;
+  }
+  .mobile-dark-toggle:hover { color: var(--color-ink); }
+  .mobile-dark-toggle-icon { display: flex; align-items: center; justify-content: center; width: 24px; }
+  .mobile-dark-toggle-label { font-size: 16px; }
 
   /* ── Footer ── */
   .site-footer {
@@ -503,10 +545,16 @@ const ogD = ogDescription ?? description;
   .prose-page ul { padding-left: var(--space-lg); margin-bottom: var(--space-md); }
   .prose-page li { font-size: 16px; color: var(--color-body); line-height: 26px; margin-bottom: var(--space-xs); }
 
+  /* ── Global input zoom-prevention (iOS zooms in when font-size < 16px) ── */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .nav-links, .nav-cta-group { display: none; }
     .hamburger { display: flex; }
+    .dark-toggle-mobile { display: flex; }
     .mobile-menu { display: block; }
     .section-heading { font-size: 24px; letter-spacing: -0.96px; line-height: 32px; }
     .container { padding: 0 var(--space-md); }

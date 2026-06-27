@@ -1,0 +1,1004 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { recipes } from '../data/recipes.ts';
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Easy Meals Under 30 Minutes",
+  "url": "https://caloriemetric.com/recipes",
+  "description": "Browse 20+ beginner-friendly meals under 30 minutes. Each recipe shows full nutrition info.",
+};
+---
+
+<Layout
+  title="Easy Meals Under 30 Minutes with Calorie Count | CalorieMetric"
+  description="Browse 20+ beginner-friendly meals under 30 minutes. Filter by calories, vegetarian or non-vegetarian. Each recipe shows calories, protein, carbs and fats."
+  jsonLd={jsonLd}
+>
+  <section class="recipes-page">
+    <div class="container">
+
+      <!-- Header -->
+      <header class="recipes-header">
+        <h1 class="section-heading">Easy Meals Under 30 Minutes</h1>
+        <p class="text-body-lg recipes-subtitle">
+          Simple recipes with full nutrition info. No complicated steps, no fancy ingredients.
+        </p>
+      </header>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" id="tab-curated" role="tab" aria-selected="true">📋 Curated Recipes</button>
+        <button class="tab-btn" id="tab-my" role="tab" aria-selected="false">
+          ⭐ My Recipes <span class="tab-count hidden" id="my-count">0</span>
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar card">
+        <div class="filter-rows">
+          <div class="filter-group">
+            <span class="filter-label">Diet</span>
+            <div class="filter-pills" role="group" aria-label="Filter by diet">
+              <button class="filter-btn active" data-filter="diet" data-value="all">All</button>
+              <button class="filter-btn" data-filter="diet" data-value="veg">🌿 Vegetarian</button>
+              <button class="filter-btn" data-filter="diet" data-value="non-veg">🍗 Non-Veg</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Meal Type</span>
+            <div class="filter-pills" role="group" aria-label="Filter by meal type">
+              <button class="filter-btn active" data-filter="type" data-value="all">All</button>
+              <button class="filter-btn" data-filter="type" data-value="breakfast">Breakfast</button>
+              <button class="filter-btn" data-filter="type" data-value="lunch">Lunch</button>
+              <button class="filter-btn" data-filter="type" data-value="dinner">Dinner</button>
+              <button class="filter-btn" data-filter="type" data-value="snack">Snack</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Calories</span>
+            <div class="filter-pills" role="group" aria-label="Filter by calories">
+              <button class="filter-btn active" data-filter="cal" data-value="all">All</button>
+              <button class="filter-btn" data-filter="cal" data-value="200">Under 200</button>
+              <button class="filter-btn" data-filter="cal" data-value="300">Under 300</button>
+              <button class="filter-btn" data-filter="cal" data-value="400">Under 400</button>
+              <button class="filter-btn" data-filter="cal" data-value="500">Under 500</button>
+            </div>
+          </div>
+        </div>
+        <p class="results-count" id="results-count">Showing {recipes.length} recipes</p>
+      </div>
+
+      <!-- Recipe Grid -->
+      <div class="recipes-grid" id="recipes-grid">
+        {recipes.map(recipe => (
+          <button
+            type="button"
+            class="recipe-card"
+            data-id={String(recipe.id)}
+            data-diet={recipe.diet}
+            data-type={recipe.type}
+            data-calories={String(recipe.calories)}
+            aria-label={`View ${recipe.name} recipe`}
+          >
+            <div class={`card-visual ${recipe.diet === 'veg' ? 'card-visual-veg' : 'card-visual-nonveg'}`}>
+              <span class="card-emoji" aria-hidden="true">{recipe.emoji}</span>
+            </div>
+            <div class="card-body">
+              <p class="recipe-name">{recipe.name}</p>
+              <span class={`diet-badge-pill ${recipe.diet === 'veg' ? 'diet-veg' : 'diet-nonveg'}`}>
+                {recipe.diet === 'veg' ? '🌿 Veg' : '🍗 Non-Veg'}
+              </span>
+              <p class="card-calories">{recipe.calories.toLocaleString()} <span class="card-cal-unit">kcal</span></p>
+              <div class="macro-pills-row">
+                <span class="mpill">P: {recipe.protein}g</span>
+                <span class="mpill">C: {recipe.carbs}g</span>
+                <span class="mpill">F: {recipe.fats}g</span>
+              </div>
+              <p class="card-prep">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {recipe.prepTime}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p class="no-results hidden" id="no-results">No recipes match your filters. Try adjusting them.</p>
+
+      <!-- ── My Recipes Section ── -->
+      <div id="my-section" class="hidden">
+
+        <!-- Add / Edit Form -->
+        <div class="card-lg my-form-card hidden" id="my-add-form" data-edit-id="">
+          <div class="my-form-header">
+            <span class="my-form-title" id="my-form-title">Add My Recipe</span>
+            <button type="button" class="my-form-cancel" id="my-form-cancel">Cancel</button>
+          </div>
+          <div class="my-form-body">
+            <div class="my-form-row">
+              <label class="form-label" for="mf-name">Recipe Name *</label>
+              <input type="text" class="form-input" id="mf-name" maxlength="100" placeholder="e.g. Protein Oatmeal Bowl" />
+            </div>
+            <div class="my-form-row">
+              <label class="form-label">Diet</label>
+              <div class="toggle-group" id="mf-diet-group">
+                <button type="button" class="toggle-btn active" data-val="veg">🌿 Veg</button>
+                <button type="button" class="toggle-btn" data-val="non-veg">🍗 Non-Veg</button>
+              </div>
+            </div>
+            <div class="my-form-row">
+              <label class="form-label">Meal Type</label>
+              <div class="toggle-group" id="mf-type-group">
+                <button type="button" class="toggle-btn active" data-val="breakfast">Breakfast</button>
+                <button type="button" class="toggle-btn" data-val="lunch">Lunch</button>
+                <button type="button" class="toggle-btn" data-val="dinner">Dinner</button>
+                <button type="button" class="toggle-btn" data-val="snack">Snack</button>
+              </div>
+            </div>
+            <div class="my-form-2col">
+              <div class="my-form-row">
+                <label class="form-label" for="mf-prep">Prep Time</label>
+                <div style="display:flex;align-items:center;gap:var(--space-xs)">
+                  <input type="number" class="form-input" id="mf-prep" min="1" max="999" placeholder="20" style="width:80px" />
+                  <span style="font-size:13px;color:var(--color-mute)">mins</span>
+                </div>
+              </div>
+              <div class="my-form-row">
+                <label class="form-label" for="mf-calories">Total Calories *</label>
+                <input type="number" class="form-input" id="mf-calories" min="1" placeholder="420" />
+              </div>
+            </div>
+            <div class="my-form-3col">
+              <div class="my-form-row">
+                <label class="form-label" for="mf-protein">Protein (g)</label>
+                <input type="number" class="form-input" id="mf-protein" min="0" placeholder="0" />
+              </div>
+              <div class="my-form-row">
+                <label class="form-label" for="mf-carbs">Carbs (g)</label>
+                <input type="number" class="form-input" id="mf-carbs" min="0" placeholder="0" />
+              </div>
+              <div class="my-form-row">
+                <label class="form-label" for="mf-fats">Fats (g)</label>
+                <input type="number" class="form-input" id="mf-fats" min="0" placeholder="0" />
+              </div>
+            </div>
+            <div class="my-form-row">
+              <label class="form-label" for="mf-ingredients">Ingredients <span class="form-label-hint">(one per line)</span></label>
+              <textarea class="form-input" id="mf-ingredients" rows="4" placeholder="1 cup oats&#10;1 scoop protein powder&#10;1 banana"></textarea>
+            </div>
+            <div class="my-form-row">
+              <label class="form-label" for="mf-steps">Steps <span class="form-label-hint">(one per line)</span></label>
+              <textarea class="form-input" id="mf-steps" rows="4" placeholder="Cook oats with water&#10;Mix in protein powder&#10;Top with banana slices"></textarea>
+            </div>
+            <p class="my-form-error hidden" id="mf-error"></p>
+            <div class="my-form-actions">
+              <button type="button" class="btn-accent" id="mf-save-btn">💾 Save Recipe</button>
+              <button type="button" class="btn-secondary" id="mf-save-nocalories-btn">Save without calories</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="my-empty-state hidden" id="my-empty-state">
+          <div class="my-empty-icon">⭐</div>
+          <p class="my-empty-title">No saved recipes yet</p>
+          <p class="my-empty-sub">Save recipes from our collection or add your own.</p>
+          <button type="button" class="btn-accent" id="my-add-btn-empty">+ Add My Recipe</button>
+        </div>
+
+        <!-- With recipes -->
+        <div class="hidden" id="my-with-recipes">
+          <div class="my-recipes-toolbar">
+            <p class="results-count" id="my-results-count">0 saved recipes</p>
+            <button type="button" class="btn-accent btn-sm" id="my-add-btn">+ Add My Recipe</button>
+          </div>
+          <div class="recipes-grid" id="my-recipes-grid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal -->
+  <div class="modal-overlay hidden" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-recipe-title">
+    <div class="modal-box" id="modal-box">
+      <button class="modal-close" id="modal-close" aria-label="Close recipe">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-inner">
+        <div class="modal-emoji-wrap">
+          <span class="modal-emoji" id="modal-emoji" aria-hidden="true"></span>
+        </div>
+        <h2 class="modal-recipe-title" id="modal-recipe-title"></h2>
+        <div class="modal-meta-row" id="modal-meta-row"></div>
+
+        <div class="modal-nutrition">
+          <p class="modal-cal-label">Total Calories</p>
+          <p class="modal-cal-value" id="modal-cal-value"></p>
+          <div class="modal-macro-grid">
+            <div class="macro-box">
+              <span class="macro-box-val" id="modal-protein"></span>
+              <span class="macro-box-label">Protein</span>
+            </div>
+            <div class="macro-box">
+              <span class="macro-box-val" id="modal-carbs"></span>
+              <span class="macro-box-label">Carbs</span>
+            </div>
+            <div class="macro-box">
+              <span class="macro-box-val" id="modal-fats"></span>
+              <span class="macro-box-label">Fats</span>
+            </div>
+            <div class="macro-box">
+              <span class="macro-box-val" id="modal-time"></span>
+              <span class="macro-box-label">Prep Time</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3 class="modal-section-title">Ingredients</h3>
+          <ul class="modal-list modal-ingredients" id="modal-ingredients"></ul>
+        </div>
+
+        <div class="modal-section">
+          <h3 class="modal-section-title">Steps</h3>
+          <ol class="modal-list modal-steps" id="modal-steps"></ol>
+        </div>
+
+        <button type="button" class="btn-accent log-recipe-btn" id="log-recipe-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Log this meal
+        </button>
+        <button type="button" class="btn-save-recipe hidden" id="save-recipe-btn">⭐ Save to My Recipes</button>
+        <div class="user-recipe-actions hidden" id="user-recipe-actions">
+          <button type="button" class="btn-user-edit" id="edit-recipe-btn">✏️ Edit Recipe</button>
+          <div id="delete-confirm-wrap" style="flex:1">
+            <button type="button" class="btn-user-delete" id="delete-recipe-btn">🗑️ Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style is:global>
+  .recipes-page { padding: var(--space-4xl) 0 var(--space-5xl); }
+
+  /* Header */
+  .recipes-header { margin-bottom: var(--space-xl); }
+  .recipes-subtitle { margin-top: var(--space-sm); color: var(--color-body); max-width: 560px; }
+
+  /* Filter Bar */
+  .filter-bar { padding: var(--space-lg); margin-bottom: var(--space-xl); }
+  .filter-rows { display: flex; flex-direction: column; gap: var(--space-md); }
+  .filter-group { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+  .filter-label { font-size: 13px; font-weight: 500; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; min-width: 72px; flex-shrink: 0; }
+  .filter-pills { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+  .filter-btn {
+    font-size: 13px; font-weight: 500; padding: 6px var(--space-sm);
+    border-radius: var(--radius-pill); border: 1px solid var(--color-hairline);
+    background: var(--color-canvas-soft); color: var(--color-body);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit;
+  }
+  .filter-btn:hover { border-color: var(--color-accent); color: var(--color-accent-deep); }
+  .filter-btn.active { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+  .results-count { font-size: 13px; color: var(--color-mute); font-family: var(--font-mono); margin-top: var(--space-md); }
+
+  /* Recipe Grid */
+  .recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  /* Recipe Card */
+  .recipe-card {
+    display: flex; flex-direction: column;
+    background: var(--color-canvas);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+    font-family: inherit;
+  }
+  .recipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-4); border-color: var(--color-hairline-strong); }
+
+  .card-visual {
+    display: flex; align-items: center; justify-content: center;
+    height: 110px; flex-shrink: 0;
+  }
+  .card-visual-veg { background: #d1fae5; }
+  .card-visual-nonveg { background: #ffedd5; }
+  html.dark .card-visual-veg { background: #064e3b; }
+  html.dark .card-visual-nonveg { background: #431407; }
+  .card-emoji { font-size: 56px; line-height: 1; display: block; }
+
+  .card-body { padding: var(--space-sm) var(--space-md) var(--space-md); display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .recipe-name { font-size: 15px; font-weight: 600; color: var(--color-ink); line-height: 1.3; }
+
+  .diet-badge-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; font-weight: 500; padding: 2px 8px;
+    border-radius: var(--radius-full); width: fit-content;
+  }
+  .diet-veg { background: #d1fae5; color: #065f46; }
+  .diet-nonveg { background: #ffedd5; color: #9a3412; }
+  html.dark .diet-veg { background: #064e3b; color: #6ee7b7; }
+  html.dark .diet-nonveg { background: #431407; color: #fdba74; }
+
+  .card-calories { font-size: 22px; font-weight: 700; color: var(--color-accent-deep); letter-spacing: -0.5px; margin-top: 2px; }
+  .card-cal-unit { font-size: 13px; font-weight: 400; color: var(--color-mute); }
+
+  .macro-pills-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .mpill { font-size: 11px; padding: 2px 7px; border-radius: var(--radius-full); background: var(--color-canvas-soft-2); color: var(--color-mute); font-family: var(--font-mono); border: 1px solid var(--color-hairline); }
+
+  .card-prep { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-mute); margin-top: 2px; }
+  .card-prep svg { flex-shrink: 0; }
+
+  .no-results { text-align: center; color: var(--color-mute); font-size: 15px; padding: var(--space-4xl) 0; }
+  .hidden { display: none !important; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--space-md);
+    animation: overlayIn 0.18s ease;
+  }
+  .modal-overlay.hidden { display: none !important; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-box {
+    background: var(--color-canvas);
+    border-radius: var(--radius-xl);
+    width: 100%; max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18), 0 0 0 1px var(--color-hairline);
+    animation: modalIn 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+
+  .modal-close {
+    position: sticky; top: var(--space-md); float: right; margin: var(--space-md) var(--space-md) 0 0;
+    width: 36px; height: 36px; border-radius: var(--radius-full);
+    background: var(--color-canvas-soft-2); color: var(--color-body);
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-hairline); transition: all 0.15s; cursor: pointer;
+    z-index: 1; flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--color-error-soft); color: var(--color-error); border-color: transparent; }
+
+  .modal-inner { padding: 0 var(--space-xl) var(--space-xl); clear: both; }
+
+  .modal-emoji-wrap { text-align: center; padding: var(--space-md) 0 var(--space-sm); }
+  .modal-emoji { font-size: 96px; line-height: 1; display: inline-block; }
+  .modal-recipe-title { font-size: 24px; font-weight: 700; letter-spacing: -0.6px; color: var(--color-ink); text-align: center; margin-bottom: var(--space-sm); }
+
+  .modal-meta-row { display: flex; align-items: center; justify-content: center; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-lg); }
+  .modal-badge {
+    font-size: 12px; font-weight: 500; padding: 3px 10px;
+    border-radius: var(--radius-full);
+  }
+  .modal-badge-veg { background: #d1fae5; color: #065f46; }
+  .modal-badge-nonveg { background: #ffedd5; color: #9a3412; }
+  .modal-badge-type { background: var(--color-canvas-soft-2); color: var(--color-body); border: 1px solid var(--color-hairline); }
+  .modal-badge-time { background: var(--color-canvas-soft-2); color: var(--color-body); border: 1px solid var(--color-hairline); display: flex; align-items: center; gap: 4px; }
+  html.dark .modal-badge-veg { background: #064e3b; color: #6ee7b7; }
+  html.dark .modal-badge-nonveg { background: #431407; color: #fdba74; }
+
+  .modal-nutrition {
+    background: var(--color-canvas-soft); border-radius: var(--radius-lg); padding: var(--space-lg);
+    margin-bottom: var(--space-lg); border: 1px solid var(--color-hairline);
+  }
+  .modal-cal-label { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-mute); }
+  .modal-cal-value { font-size: 44px; font-weight: 700; letter-spacing: -2px; color: var(--color-accent-deep); line-height: 1.1; margin: 4px 0 var(--space-md); }
+
+  .modal-macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xs); }
+  .macro-box {
+    background: var(--color-canvas); border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-md); padding: var(--space-sm);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  }
+  .macro-box-val { font-size: 16px; font-weight: 700; color: var(--color-ink); }
+  .macro-box-label { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; }
+
+  .modal-section { margin-bottom: var(--space-lg); }
+  .modal-section-title { font-size: 15px; font-weight: 600; color: var(--color-ink); margin-bottom: var(--space-sm); }
+  .modal-list { padding-left: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-xs); }
+  .modal-list li { font-size: 14px; color: var(--color-body); line-height: 1.5; }
+
+  .log-recipe-btn {
+    width: 100%; justify-content: center; padding: 14px; font-size: 16px;
+    border-radius: var(--radius-pill); border: none; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; gap: var(--space-xs);
+  }
+
+  /* ── Tab Bar ── */
+  .tab-bar { display: flex; gap: 2px; background: var(--color-canvas-soft-2); border-radius: var(--radius-lg); padding: 4px; margin-bottom: var(--space-xl); width: fit-content; }
+  .tab-btn { font-size: 14px; font-weight: 500; padding: 8px var(--space-lg); border-radius: var(--radius-md); border: none; background: none; color: var(--color-mute); cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-xs); }
+  .tab-btn.active { background: var(--color-canvas); color: var(--color-ink); box-shadow: var(--shadow-2); }
+  .tab-count { font-size: 11px; background: var(--color-accent); color: white; padding: 1px 7px; border-radius: var(--radius-full); font-weight: 600; line-height: 1.4; }
+
+  /* ── My Recipes Add/Edit Form ── */
+  .my-form-card { margin-bottom: var(--space-xl); }
+  .my-form-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+  .my-form-title { font-size: 15px; font-weight: 600; color: var(--color-ink); }
+  .my-form-cancel { font-size: 13px; color: var(--color-mute); background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; padding: 0; transition: color 0.15s; }
+  .my-form-cancel:hover { color: var(--color-ink); }
+  .my-form-body { display: flex; flex-direction: column; gap: var(--space-md); }
+  .my-form-row { display: flex; flex-direction: column; gap: var(--space-xxs); }
+  .my-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+  .my-form-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); }
+  .form-label-hint { font-weight: 400; color: var(--color-mute); }
+  .my-form-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-top: var(--space-xs); }
+  .my-form-error { font-size: 13px; color: var(--color-error); }
+
+  /* ── Toggle group (diet / meal type) ── */
+  .toggle-group { display: flex; flex-wrap: wrap; gap: var(--space-xxs); }
+  .toggle-btn { font-size: 13px; font-weight: 500; padding: 6px var(--space-sm); border-radius: var(--radius-pill); border: 1px solid var(--color-hairline); background: var(--color-canvas-soft); color: var(--color-body); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .toggle-btn:hover { border-color: var(--color-accent); color: var(--color-accent-deep); }
+  .toggle-btn.active { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+
+  /* ── My Recipes empty state ── */
+  .my-empty-state { text-align: center; padding: var(--space-5xl) 0; }
+  .my-empty-icon { font-size: 56px; margin-bottom: var(--space-md); }
+  .my-empty-title { font-size: 20px; font-weight: 600; color: var(--color-ink); margin-bottom: var(--space-xs); }
+  .my-empty-sub { font-size: 15px; color: var(--color-mute); margin-bottom: var(--space-xl); }
+
+  /* ── My Recipes toolbar ── */
+  .my-recipes-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+
+  /* ── User recipe card ── */
+  .user-recipe-card {
+    display: flex; flex-direction: column;
+    background: var(--color-canvas); border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
+    text-align: left; position: relative;
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  }
+  .user-recipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-4); border-color: var(--color-hairline-strong); }
+
+  /* Edit / Delete overlay on cards */
+  .user-card-actions { position: absolute; top: var(--space-xs); right: var(--space-xs); display: flex; gap: 4px; z-index: 1; }
+  .user-card-action-btn {
+    min-width: 28px; height: 28px; border-radius: var(--radius-sm); border: none;
+    background: rgba(255,255,255,0.88); backdrop-filter: blur(4px);
+    cursor: pointer; font-size: 13px; padding: 0 6px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  .user-card-action-btn:hover { background: white; }
+  html.dark .user-card-action-btn { background: rgba(30,30,30,0.88); }
+  html.dark .user-card-action-btn:hover { background: rgba(55,55,55,0.95); }
+
+  /* ── Modal: Save to My Recipes button ── */
+  .btn-save-recipe {
+    width: 100%; margin-top: var(--space-sm); padding: 12px var(--space-lg);
+    font-size: 15px; font-weight: 600; border-radius: var(--radius-pill);
+    border: 2px solid var(--color-accent); background: transparent;
+    color: var(--color-accent-deep); cursor: pointer; font-family: inherit;
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: var(--space-xs);
+  }
+  .btn-save-recipe:hover:not(:disabled) { background: var(--color-accent-soft); }
+  .btn-save-recipe:disabled { opacity: 0.55; cursor: default; }
+
+  /* ── Modal: user recipe action buttons ── */
+  .user-recipe-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); }
+  .btn-user-edit {
+    flex: 1; padding: 12px; border-radius: var(--radius-pill);
+    border: 1px solid var(--color-hairline); background: var(--color-canvas-soft);
+    color: var(--color-ink); cursor: pointer; font-family: inherit; font-weight: 500; font-size: 15px; transition: all 0.15s;
+  }
+  .btn-user-edit:hover { border-color: var(--color-accent); color: var(--color-accent-deep); background: var(--color-accent-soft); }
+  .btn-user-delete {
+    width: 100%; padding: 12px; border-radius: var(--radius-pill);
+    border: 1px solid var(--color-error); background: transparent;
+    color: var(--color-error); cursor: pointer; font-family: inherit; font-weight: 500; font-size: 15px; transition: all 0.15s;
+  }
+  .btn-user-delete:hover { background: var(--color-error-soft); }
+
+  /* ── My Recipe badge in modal ── */
+  .modal-badge-user { background: var(--color-accent-soft); color: var(--color-accent-deep); border: 1px solid var(--color-accent); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .recipes-grid { grid-template-columns: repeat(2, 1fr); }
+    .filter-group { flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
+    .filter-label { min-width: unset; }
+  }
+  @media (max-width: 600px) {
+    .recipes-page { padding: var(--space-xl) 0 var(--space-3xl); }
+    .recipes-grid { grid-template-columns: 1fr; }
+    .modal-inner { padding: 0 var(--space-md) var(--space-lg); }
+    .modal-emoji { font-size: 72px; }
+    .modal-recipe-title { font-size: 20px; }
+    .modal-macro-grid { grid-template-columns: repeat(2, 1fr); }
+    .modal-cal-value { font-size: 36px; }
+  }
+</style>
+
+<script define:vars={{ recipes }}>
+  const overlay = document.getElementById('modal-overlay');
+  const modalBox = document.getElementById('modal-box');
+  let activeJsonLd = null;
+
+  function prepTimeToISO(t) {
+    const m = String(t).match(/(\d+)/);
+    return m ? `PT${m[1]}M` : 'PT10M';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function openModal(id) {
+    const recipe = recipes.find(r => r.id === id);
+    if (!recipe) return;
+
+    document.getElementById('modal-emoji').textContent = recipe.emoji;
+    document.getElementById('modal-recipe-title').textContent = recipe.name;
+
+    const typeLabel = recipe.type.charAt(0).toUpperCase() + recipe.type.slice(1);
+    const dietClass = recipe.diet === 'veg' ? 'modal-badge-veg' : 'modal-badge-nonveg';
+    const dietLabel = recipe.diet === 'veg' ? '🌿 Veg' : '🍗 Non-Veg';
+    document.getElementById('modal-meta-row').innerHTML = `
+      <span class="modal-badge ${dietClass}">${dietLabel}</span>
+      <span class="modal-badge modal-badge-type">${esc(typeLabel)}</span>
+      <span class="modal-badge modal-badge-time">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${esc(recipe.prepTime)}
+      </span>
+    `;
+
+    document.getElementById('modal-cal-value').textContent = recipe.calories.toLocaleString() + ' kcal';
+    document.getElementById('modal-protein').textContent = recipe.protein + 'g';
+    document.getElementById('modal-carbs').textContent = recipe.carbs + 'g';
+    document.getElementById('modal-fats').textContent = recipe.fats + 'g';
+    document.getElementById('modal-time').textContent = recipe.prepTime;
+
+    document.getElementById('modal-ingredients').innerHTML =
+      recipe.ingredients.map(i => `<li>${esc(i)}</li>`).join('');
+    document.getElementById('modal-steps').innerHTML =
+      recipe.steps.map(s => `<li>${esc(s)}</li>`).join('');
+
+    document.getElementById('log-recipe-btn').onclick = () => {
+      localStorage.setItem('cm_prefill_meal', JSON.stringify({ name: recipe.name, calories: recipe.calories }));
+      closeModal();
+      window.location.href = '/dashboard';
+    };
+
+    // Inject JSON-LD schema
+    if (activeJsonLd) activeJsonLd.remove();
+    activeJsonLd = document.createElement('script');
+    activeJsonLd.type = 'application/ld+json';
+    activeJsonLd.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Recipe",
+      "name": recipe.name,
+      "totalTime": prepTimeToISO(recipe.prepTime),
+      "recipeCategory": typeLabel,
+      "nutrition": {
+        "@type": "NutritionInformation",
+        "calories": recipe.calories + " calories",
+        "proteinContent": recipe.protein + "g",
+        "carbohydrateContent": recipe.carbs + "g",
+        "fatContent": recipe.fats + "g",
+      },
+    });
+    document.head.appendChild(activeJsonLd);
+
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    modalBox.scrollTop = 0;
+
+    // ── Curated modal: wire save-to-my-recipes button ──
+    document.getElementById('user-recipe-actions').classList.add('hidden');
+    const saveBtn = document.getElementById('save-recipe-btn');
+    saveBtn.classList.remove('hidden');
+    const alreadySaved = getUserRecipes().some(r => r.name === recipe.name);
+    saveBtn.textContent = alreadySaved ? '✓ Saved' : '⭐ Save to My Recipes';
+    saveBtn.disabled = alreadySaved;
+    saveBtn.onclick = () => saveCuratedToMyRecipes(recipe, saveBtn);
+  }
+
+  function closeModal() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    if (activeJsonLd) { activeJsonLd.remove(); activeJsonLd = null; }
+  }
+
+  // Card clicks
+  document.getElementById('recipes-grid').addEventListener('click', e => {
+    const card = e.target.closest('.recipe-card');
+    if (card) openModal(parseInt(card.dataset.id));
+  });
+
+  // Close handlers
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Filtering ──
+  const state = { diet: 'all', type: 'all', cal: 'all' };
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter;
+      state[filter] = btn.dataset.value;
+
+      // Update active pill within this group
+      btn.closest('.filter-pills').querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+
+      applyFilters();
+    });
+  });
+
+  function applyFilters() {
+    const cards = document.querySelectorAll('.recipe-card');
+    let visible = 0;
+    cards.forEach(card => {
+      const matchDiet = state.diet === 'all' || card.dataset.diet === state.diet;
+      const matchType = state.type === 'all' || card.dataset.type === state.type;
+      const cal = parseInt(card.dataset.calories);
+      const matchCal = state.cal === 'all' || cal < parseInt(state.cal);
+      const show = matchDiet && matchType && matchCal;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('results-count').textContent = `Showing ${visible} recipe${visible !== 1 ? 's' : ''}`;
+    document.getElementById('no-results').classList.toggle('hidden', visible > 0);
+  }
+
+  // ════════════════════════════════════════
+  // ── My Recipes ──────────────────────────
+  // ════════════════════════════════════════
+
+  function getUserRecipes() {
+    try { return JSON.parse(localStorage.getItem('cm_user_recipes') || '[]'); } catch { return []; }
+  }
+  function saveUserRecipes(data) { localStorage.setItem('cm_user_recipes', JSON.stringify(data)); }
+
+  function assignEmoji(name, type) {
+    const n = name.toLowerCase();
+    if (/pasta|noodle/.test(n)) return '🍝';
+    if (/rice|bowl/.test(n))    return '🍚';
+    if (/sandwich|wrap/.test(n))return '🥪';
+    if (/smoothie|shake/.test(n))return '🥤';
+    if (/salad/.test(n))        return '🥗';
+    if (/egg/.test(n))          return '🍳';
+    if (/chicken/.test(n))      return '🍗';
+    if (/soup/.test(n))         return '🍜';
+    const defaults = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' };
+    return defaults[type] || '🍽️';
+  }
+
+  function switchTab(tab) {
+    const isCurated = tab === 'curated';
+    document.getElementById('tab-curated').classList.toggle('active', isCurated);
+    document.getElementById('tab-my').classList.toggle('active', !isCurated);
+    document.getElementById('tab-curated').setAttribute('aria-selected', String(isCurated));
+    document.getElementById('tab-my').setAttribute('aria-selected', String(!isCurated));
+    document.querySelector('.filter-bar').classList.toggle('hidden', !isCurated);
+    document.getElementById('recipes-grid').classList.toggle('hidden', !isCurated);
+    document.getElementById('my-section').classList.toggle('hidden', isCurated);
+    if (isCurated) applyFilters(); else document.getElementById('no-results').classList.add('hidden');
+  }
+
+  function renderMyRecipesCount() {
+    const count = getUserRecipes().length;
+    const el = document.getElementById('my-count');
+    if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  }
+
+  function renderUserRecipeCard(r) {
+    const isVeg = r.diet === 'veg';
+    const calLine = r.calories != null
+      ? `<p class="card-calories">${Number(r.calories).toLocaleString()} <span class="card-cal-unit">kcal</span></p>`
+      : '';
+    const hasMacros = r.protein != null || r.carbs != null || r.fats != null;
+    const macroPills = hasMacros ? `
+          <div class="macro-pills-row">
+            ${r.protein != null ? `<span class="mpill">P: ${r.protein}g</span>` : ''}
+            ${r.carbs   != null ? `<span class="mpill">C: ${r.carbs}g</span>`   : ''}
+            ${r.fats    != null ? `<span class="mpill">F: ${r.fats}g</span>`    : ''}
+          </div>` : '';
+    return `
+      <div class="user-recipe-card" data-user-id="${esc(r.id)}" tabindex="0" role="button" aria-label="View ${esc(r.name)} recipe">
+        <div class="user-card-actions">
+          <button type="button" class="user-card-action-btn" data-edit="${esc(r.id)}" title="Edit" aria-label="Edit ${esc(r.name)}">✏️</button>
+          <button type="button" class="user-card-action-btn" data-delete="${esc(r.id)}" title="Delete" aria-label="Delete ${esc(r.name)}">🗑️</button>
+        </div>
+        <div class="card-visual ${isVeg ? 'card-visual-veg' : 'card-visual-nonveg'}">
+          <span class="card-emoji" aria-hidden="true">${r.emoji}</span>
+        </div>
+        <div class="card-body">
+          <p class="recipe-name">${esc(r.name)}</p>
+          <span class="diet-badge-pill ${isVeg ? 'diet-veg' : 'diet-nonveg'}">${isVeg ? '🌿 Veg' : '🍗 Non-Veg'}</span>
+          ${calLine}
+          ${macroPills}
+          <p class="card-prep">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${r.prepTime || '—'}
+          </p>
+        </div>
+      </div>`;
+  }
+
+  function renderMyRecipes() {
+    const myRecipes = getUserRecipes();
+    const emptyEl = document.getElementById('my-empty-state');
+    const withEl  = document.getElementById('my-with-recipes');
+    if (myRecipes.length === 0) {
+      emptyEl.classList.remove('hidden');
+      withEl.classList.add('hidden');
+    } else {
+      emptyEl.classList.add('hidden');
+      withEl.classList.remove('hidden');
+      document.getElementById('my-results-count').textContent =
+        `${myRecipes.length} saved recipe${myRecipes.length !== 1 ? 's' : ''}`;
+      document.getElementById('my-recipes-grid').innerHTML = myRecipes.map(renderUserRecipeCard).join('');
+    }
+    renderMyRecipesCount();
+  }
+
+  function showAddForm(existing) {
+    const formEl = document.getElementById('my-add-form');
+    document.getElementById('my-form-title').textContent = existing ? 'Edit Recipe' : 'Add My Recipe';
+    formEl.dataset.editId = existing ? existing.id : '';
+
+    document.getElementById('mf-name').value      = existing?.name || '';
+    document.getElementById('mf-calories').value  = existing?.calories ?? '';
+    document.getElementById('mf-protein').value   = existing?.protein  ?? '';
+    document.getElementById('mf-carbs').value     = existing?.carbs    ?? '';
+    document.getElementById('mf-fats').value      = existing?.fats     ?? '';
+    const prepNum = existing?.prepTime ? parseInt(existing.prepTime) : '';
+    document.getElementById('mf-prep').value = isNaN(Number(prepNum)) ? '' : prepNum;
+    document.getElementById('mf-ingredients').value = (existing?.ingredients || []).join('\n');
+    document.getElementById('mf-steps').value        = (existing?.steps       || []).join('\n');
+
+    document.querySelectorAll('#mf-diet-group .toggle-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.val === (existing?.diet || 'veg')));
+    document.querySelectorAll('#mf-type-group .toggle-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.val === (existing?.type || 'breakfast')));
+
+    document.getElementById('mf-error').textContent = '';
+    document.getElementById('mf-error').classList.add('hidden');
+    document.getElementById('my-empty-state').classList.add('hidden');
+    document.getElementById('my-with-recipes').classList.add('hidden');
+    formEl.classList.remove('hidden');
+    formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function hideAddForm() {
+    document.getElementById('my-add-form').classList.add('hidden');
+    document.getElementById('my-add-form').dataset.editId = '';
+    renderMyRecipes();
+  }
+
+  function showFormError(msg) {
+    const el = document.getElementById('mf-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function saveMyRecipeFromForm(skipCalories) {
+    const name = document.getElementById('mf-name').value.trim();
+    if (!name) { showFormError('Recipe name is required.'); return; }
+
+    const rawCal = parseInt(document.getElementById('mf-calories').value);
+    const calories = skipCalories ? null : (isNaN(rawCal) ? null : rawCal);
+    if (!skipCalories && calories == null) {
+      showFormError('Total calories is required, or choose "Save without calories".');
+      return;
+    }
+
+    const diet       = document.querySelector('#mf-diet-group .toggle-btn.active')?.dataset.val || 'veg';
+    const type       = document.querySelector('#mf-type-group .toggle-btn.active')?.dataset.val || 'breakfast';
+    const rawPrep    = parseInt(document.getElementById('mf-prep').value);
+    const prepTime   = isNaN(rawPrep) ? null : `${rawPrep} mins`;
+    const protein    = parseInt(document.getElementById('mf-protein').value) || null;
+    const carbs      = parseInt(document.getElementById('mf-carbs').value)   || null;
+    const fats       = parseInt(document.getElementById('mf-fats').value)    || null;
+    const ingredients = document.getElementById('mf-ingredients').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+    const steps       = document.getElementById('mf-steps').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+    const emoji = assignEmoji(name, type);
+
+    const editId   = document.getElementById('my-add-form').dataset.editId;
+    const existing = editId ? getUserRecipes().find(r => r.id === editId) : null;
+
+    const newRecipe = {
+      id: existing?.id || crypto.randomUUID(),
+      name, calories, protein, carbs, fats, prepTime, type, diet, emoji,
+      ingredients, steps,
+      createdAt: existing?.createdAt || Date.now(),
+      isUserRecipe: true,
+    };
+
+    const saved = getUserRecipes();
+    if (editId) {
+      const idx = saved.findIndex(r => r.id === editId);
+      if (idx !== -1) saved[idx] = newRecipe; else saved.push(newRecipe);
+    } else {
+      saved.push(newRecipe);
+    }
+
+    saveUserRecipes(saved);
+    hideAddForm();
+  }
+
+  function saveCuratedToMyRecipes(recipe, btn) {
+    const saved = getUserRecipes();
+    if (saved.some(r => r.name === recipe.name)) { btn.textContent = '✓ Saved'; btn.disabled = true; return; }
+    saved.push({
+      id: crypto.randomUUID(),
+      name: recipe.name, calories: recipe.calories, protein: recipe.protein,
+      carbs: recipe.carbs, fats: recipe.fats, prepTime: recipe.prepTime,
+      type: recipe.type, diet: recipe.diet, emoji: recipe.emoji,
+      ingredients: recipe.ingredients, steps: recipe.steps,
+      createdAt: Date.now(), isUserRecipe: true,
+    });
+    saveUserRecipes(saved);
+    btn.textContent = '✓ Saved';
+    btn.disabled = true;
+    renderMyRecipesCount();
+  }
+
+  function openUserModal(id) {
+    const recipe = getUserRecipes().find(r => r.id === id);
+    if (!recipe) return;
+
+    document.getElementById('modal-emoji').textContent = recipe.emoji;
+    document.getElementById('modal-recipe-title').textContent = recipe.name;
+
+    const typeLabel = recipe.type ? (recipe.type.charAt(0).toUpperCase() + recipe.type.slice(1)) : '';
+    const dietClass = recipe.diet === 'veg' ? 'modal-badge-veg' : 'modal-badge-nonveg';
+    const dietLabel = recipe.diet === 'veg' ? '🌿 Veg' : '🍗 Non-Veg';
+
+    document.getElementById('modal-meta-row').innerHTML = `
+      <span class="modal-badge modal-badge-user">⭐ My Recipe</span>
+      <span class="modal-badge ${dietClass}">${dietLabel}</span>
+      ${typeLabel ? `<span class="modal-badge modal-badge-type">${esc(typeLabel)}</span>` : ''}
+      ${recipe.prepTime ? `<span class="modal-badge modal-badge-time">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${esc(recipe.prepTime)}</span>` : ''}
+    `;
+
+    document.getElementById('modal-cal-value').textContent =
+      recipe.calories != null ? `${Number(recipe.calories).toLocaleString()} kcal` : '—';
+    document.getElementById('modal-protein').textContent = recipe.protein != null ? recipe.protein + 'g' : '—';
+    document.getElementById('modal-carbs').textContent   = recipe.carbs   != null ? recipe.carbs   + 'g' : '—';
+    document.getElementById('modal-fats').textContent    = recipe.fats    != null ? recipe.fats    + 'g' : '—';
+    document.getElementById('modal-time').textContent    = recipe.prepTime || '—';
+
+    document.getElementById('modal-ingredients').innerHTML =
+      (recipe.ingredients || []).map(i => `<li>${esc(i)}</li>`).join('') ||
+      '<li style="color:var(--color-mute);list-style:none;padding-left:0">No ingredients listed.</li>';
+    document.getElementById('modal-steps').innerHTML =
+      (recipe.steps || []).map(s => `<li>${esc(s)}</li>`).join('') ||
+      '<li style="color:var(--color-mute);list-style:none;padding-left:0">No steps listed.</li>';
+
+    const logBtn = document.getElementById('log-recipe-btn');
+    logBtn.style.opacity = recipe.calories != null ? '' : '0.5';
+    logBtn.title = recipe.calories != null ? '' : 'Add calories to enable logging';
+    logBtn.onclick = () => {
+      if (recipe.calories == null) return;
+      localStorage.setItem('cm_prefill_meal', JSON.stringify({ name: recipe.name, calories: recipe.calories }));
+      closeModal();
+      window.location.href = '/dashboard';
+    };
+
+    document.getElementById('save-recipe-btn').classList.add('hidden');
+    document.getElementById('user-recipe-actions').classList.remove('hidden');
+
+    document.getElementById('edit-recipe-btn').onclick = () => {
+      closeModal();
+      switchTab('my');
+      showAddForm(recipe);
+    };
+
+    setupDeleteInModal(id);
+
+    if (activeJsonLd) { activeJsonLd.remove(); activeJsonLd = null; }
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    modalBox.scrollTop = 0;
+  }
+
+  function setupDeleteInModal(id) {
+    const wrap = document.getElementById('delete-confirm-wrap');
+    wrap.innerHTML = `<button type="button" class="btn-user-delete" id="delete-recipe-btn">🗑️ Delete</button>`;
+    document.getElementById('delete-recipe-btn').onclick = () => {
+      wrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:var(--space-xs);flex-wrap:wrap;padding:4px 0">
+          <span style="font-size:13px;color:var(--color-mute)">Delete this recipe?</span>
+          <button type="button" id="del-yes" style="background:var(--color-error);color:white;border:none;padding:6px 14px;border-radius:var(--radius-pill);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500">Yes, delete</button>
+          <button type="button" id="del-cancel" style="border:1px solid var(--color-hairline);background:var(--color-canvas-soft);color:var(--color-body);padding:6px 14px;border-radius:var(--radius-pill);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+        </div>`;
+      document.getElementById('del-yes').onclick = () => {
+        saveUserRecipes(getUserRecipes().filter(r => r.id !== id));
+        closeModal();
+        renderMyRecipes();
+      };
+      document.getElementById('del-cancel').onclick = () => setupDeleteInModal(id);
+    };
+  }
+
+  // ── My recipes grid — event delegation ──
+  document.getElementById('my-recipes-grid').addEventListener('click', e => {
+    const editBtn   = e.target.closest('[data-edit]');
+    const deleteBtn = e.target.closest('[data-delete]');
+    const delYes    = e.target.closest('[data-confirm-delete]');
+    const delNo     = e.target.closest('[data-cancel-delete]');
+    const card      = e.target.closest('.user-recipe-card');
+
+    if (editBtn) {
+      e.stopPropagation();
+      const recipe = getUserRecipes().find(r => r.id === editBtn.dataset.edit);
+      if (recipe) showAddForm(recipe);
+    } else if (deleteBtn) {
+      e.stopPropagation();
+      const id = deleteBtn.dataset.delete;
+      const actionsDiv = deleteBtn.closest('.user-card-actions');
+      actionsDiv.innerHTML = `
+        <button type="button" class="user-card-action-btn" data-cancel-delete="${esc(id)}" title="Cancel" style="font-size:11px">✗</button>
+        <button type="button" class="user-card-action-btn" data-confirm-delete="${esc(id)}" title="Confirm delete" style="background:var(--color-error);color:white;font-size:11px">✓</button>
+      `;
+    } else if (delYes) {
+      e.stopPropagation();
+      saveUserRecipes(getUserRecipes().filter(r => r.id !== delYes.dataset.confirmDelete));
+      renderMyRecipes();
+    } else if (delNo) {
+      e.stopPropagation();
+      renderMyRecipes();
+    } else if (card) {
+      openUserModal(card.dataset.userId);
+    }
+  });
+
+  // ── Tab click handlers ──
+  document.getElementById('tab-curated').addEventListener('click', () => switchTab('curated'));
+  document.getElementById('tab-my').addEventListener('click', () => switchTab('my'));
+
+  // ── Form toggle buttons ──
+  document.getElementById('mf-diet-group').addEventListener('click', e => {
+    const btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    document.querySelectorAll('#mf-diet-group .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+  document.getElementById('mf-type-group').addEventListener('click', e => {
+    const btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    document.querySelectorAll('#mf-type-group .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  // ── Form submit/cancel ──
+  document.getElementById('mf-save-btn').addEventListener('click', () => saveMyRecipeFromForm(false));
+  document.getElementById('mf-save-nocalories-btn').addEventListener('click', () => saveMyRecipeFromForm(true));
+  document.getElementById('my-form-cancel').addEventListener('click', hideAddForm);
+  document.getElementById('my-add-btn-empty').addEventListener('click', () => showAddForm(null));
+  document.getElementById('my-add-btn').addEventListener('click', () => showAddForm(null));
+
+  // ── Add form keyboard support ──
+  document.getElementById('my-recipes-grid').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const card = e.target.closest('.user-recipe-card');
+      if (card && e.target === card) { e.preventDefault(); openUserModal(card.dataset.userId); }
+    }
+  });
+
+  // ── Init ──
+  renderMyRecipes();
+</script>

@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
 ---
 
 <Layout
@@ -216,6 +215,59 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
   .badge-more-link { display: inline-flex; align-items: center; gap: var(--space-xxs); font-size: 13px; color: var(--color-accent-deep); font-weight: 500; transition: gap 0.2s; }
   .badge-more-link:hover { gap: var(--space-xs); }
 
+  /* ── Clear day button ── */
+  .clear-day-btn {
+    font-size: 12px; color: var(--color-mute); background: none; border: none;
+    cursor: pointer; font-family: var(--font-mono); padding: 2px 6px;
+    border-radius: var(--radius-xs); transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .clear-day-btn:hover { color: var(--color-error); background: var(--color-error-soft); }
+
+  /* ── Quick-add chips ── */
+  .chip-section { margin-bottom: var(--space-sm); }
+  .chip-label { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; color: var(--color-mute); letter-spacing: 0.04em; display: block; margin-bottom: var(--space-xxs); }
+  .chip-row { display: flex; flex-wrap: wrap; gap: var(--space-xxs); }
+  .quick-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--color-canvas-soft); border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-pill); padding: 4px 10px; font-size: 13px;
+    color: var(--color-ink); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .quick-chip:hover { background: var(--color-accent-soft); border-color: var(--color-accent); }
+  .chip-cal { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
+
+  /* ── Lookup counter ── */
+  .lookup-counter { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); margin-bottom: var(--space-sm); }
+  .lookup-counter.exhausted { color: var(--color-warning-deep); }
+
+  /* ── Cache suggestion ── */
+  .cache-suggestion {
+    background: var(--color-canvas-soft); border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md);
+    font-size: 14px; color: var(--color-ink);
+  }
+  .suggestion-actions { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-top: var(--space-sm); }
+
+  /* ── Star button ── */
+  .meal-star {
+    width: 22px; height: 22px; border-radius: var(--radius-xs);
+    font-size: 13px; display: flex; align-items: center; justify-content: center;
+    color: var(--color-mute); background: none; border: none; cursor: pointer;
+    opacity: 0.4; transition: opacity 0.15s;
+  }
+  .meal-star:hover { opacity: 1; }
+  .meal-star.starred { opacity: 1; }
+
+  /* ── Saved meals section ── */
+  .saved-meals-section {}
+  .saved-meals-list { display: flex; flex-direction: column; gap: 2px; }
+  .saved-meal-row { display: flex; align-items: center; gap: var(--space-xs); font-size: 13px; padding: 3px 0; }
+  .saved-meal-name { flex: 1; color: var(--color-body); }
+  .saved-meal-cal { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); }
+  .saved-meal-remove { width: 18px; height: 18px; border-radius: var(--radius-xs); font-size: 14px; line-height: 1; color: var(--color-mute); background: none; border: none; cursor: pointer; transition: color 0.15s; }
+  .saved-meal-remove:hover { color: var(--color-error); }
+
   .hidden { display: none !important; }
 
   @media (max-width: 900px) {
@@ -234,8 +286,14 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
   }
 </style>
 
-<script define:vars={{ groqApiKey }}>
-  const GROQ_API_KEY = groqApiKey;
+<script>
+  const DAILY_LIMIT = 20;
+  const CACHE_MAX = 200;
+  const CACHE_EVICT = 50;
+  const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  const SAVED_MAX = 20;
+
+  let _rootClickHandler = null;
 
   const BADGES_CONFIG = [
     { id: 'week_warrior',   emoji: '🥉', name: 'Week Warrior',   req: '7-day streak',   days: 7 },
@@ -244,33 +302,185 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
   ];
 
   const GOAL_LABELS = { lose: 'Lose Weight', maintain: 'Maintain Weight', gain: 'Gain Weight' };
+  const UNITS = ['cup','bowl','tbsp','tsp','piece','serving','slice','oz','g','ml','lb'];
+  const FILLER = new Set(['of','with','and','some','little','bit','piece','pieces','slice','slices']);
+  const NUM_WORDS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,half:0.5,a:1,an:1 };
 
   function todayStr() { return new Date().toISOString().split('T')[0]; }
   function formatDate(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  // ── Rate limiting ──
+  function getUsage() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('cm_api_usage') || '{}');
+      if (raw.date !== todayStr()) return { date: todayStr(), count: 0 };
+      return raw;
+    } catch { return { date: todayStr(), count: 0 }; }
+  }
+  function saveUsage(u) { localStorage.setItem('cm_api_usage', JSON.stringify(u)); }
+  function getRemainingLookups() { return Math.max(0, DAILY_LIMIT - getUsage().count); }
+  function incrementUsage() { const u = getUsage(); u.count++; saveUsage(u); }
+  function limitReached() { return getUsage().count >= DAILY_LIMIT; }
+
+  // ── Input sanitization ──
+  function sanitizeInput(raw) {
+    const urlPattern = /https?:\/\/|www\.|<[^>]+>|<script|javascript:|on\w+\s*=/i;
+    let s = String(raw).slice(0, 200);
+    if (urlPattern.test(s)) return null;
+    s = s.replace(/<[^>]*>/g, '').replace(/[<>"'`;]/g, '').trim();
+    return s || null;
+  }
+
+  // ── Offensive content filter ──
+  function isOffensiveInput(raw) {
+    const lower = raw.toLowerCase();
+    // Normalize leet-speak so "sh1t", "f@ck", "sh!t" etc. are caught
+    const norm = lower
+      .replace(/1/g, 'i').replace(/3/g, 'e').replace(/0/g, 'o')
+      .replace(/@/g, 'a').replace(/\$/g, 's').replace(/!/g, 'i');
+
+    // Whole-word terms — word boundaries prevent common food false positives:
+    // grape≠rape, cocktail≠cock, cassava≠ass, skillet≠kill, cucumber≠cum,
+    // cracker≠crack, Bombay≠bomb, method≠meth, shiitake≠shit
+    const wordTerms = [
+      'ass','cock','cum','cunt','dick','piss','shit','fuck','bitch',
+      'slut','whore','prick','twat','wank','bollocks','bugger','bastard',
+      'nigger','nigga','faggot','retard',
+      'porn','nude','sex',
+      'bomb','kill','rape','stab','shoot','murder','suicide','terror',
+      'cocaine','heroin','meth','crack','fentanyl','ecstasy','ketamine',
+      'mdma','lsd','pcp','marijuana','cannabis','weed',
+    ];
+    if (new RegExp(`\\b(${wordTerms.join('|')})\\b`).test(norm)) return true;
+
+    // Substring terms — distinctive enough to have no food false positives
+    const subTerms = [
+      'motherfuck','masturbat','orgasm','erection','hentai',
+      'genocide','massacre','torture','decapitat',
+      'methamphetamine','oxycodone','opioid',
+    ];
+    if (subTerms.some(t => norm.includes(t))) return true;
+
+    // Prompt injection phrases (check original lowercase, not leet-normed)
+    const injectionTerms = [
+      'ignore previous','ignore all previous','system prompt','you are now',
+      'forget instructions','forget all instructions','act as','jailbreak',
+      'new instructions','override instructions','disregard previous',
+      'pretend you are','roleplay as','you are an ai',
+    ];
+    if (injectionTerms.some(t => lower.includes(t))) return true;
+
+    // Gibberish: any token longer than 8 chars with no vowels
+    if (lower.split(/\s+/).some(w => w.length > 8 && !/[aeiou]/.test(w))) return true;
+
+    return false;
+  }
+
+  // ── Normalization ──
+  function normalize(input) {
+    let s = input.toLowerCase();
+    Object.entries(NUM_WORDS).forEach(([w, n]) => {
+      s = s.replace(new RegExp(`\\b${w}\\b`, 'g'), String(n));
+    });
+    s = s.replace(/[^\w\s.]/g, ' ');
+    s = s.split(/\s+/).filter(w => !FILLER.has(w) && w !== '').join(' ');
+    return s.trim();
+  }
+
+  // ── Meal cache ──
+  function getCache() { try { return JSON.parse(localStorage.getItem('cm_meal_cache') || '{}'); } catch { return {}; } }
+  function saveCache(c) { localStorage.setItem('cm_meal_cache', JSON.stringify(c)); }
+
+  function pruneCache(cache) {
+    const now = Date.now();
+    Object.keys(cache).forEach(k => {
+      const v = cache[k];
+      if (typeof v === 'object' && v.cachedAt && now - v.cachedAt > CACHE_TTL_MS) delete cache[k];
+    });
+    const entries = Object.entries(cache).filter(([,v]) => typeof v === 'object');
+    if (entries.length > CACHE_MAX) {
+      entries.sort((a, b) => a[1].cachedAt - b[1].cachedAt);
+      entries.slice(0, CACHE_EVICT).forEach(([k]) => delete cache[k]);
+      Object.keys(cache).forEach(k => {
+        if (typeof cache[k] === 'string' && !cache[cache[k]]) delete cache[k];
+      });
+    }
+    return cache;
+  }
+
+  function resolveCache(cache, key) {
+    const entry = cache[key];
+    if (!entry) return null;
+    if (typeof entry === 'string') return cache[entry] || null;
+    return entry;
+  }
+
+  function cacheSet(normKey, result) {
+    let cache = getCache();
+    cache = pruneCache(cache);
+    cache[normKey] = { name: result.name, calories: result.calories, cachedAt: Date.now() };
+    saveCache(cache);
+  }
+
+  function cacheAlias(aliasKey, mainKey) {
+    const cache = getCache();
+    if (aliasKey !== mainKey) cache[aliasKey] = mainKey;
+    saveCache(cache);
+  }
+
+  // ── Saved meals ──
+  function getSavedMeals() {
+    try {
+      const meals = JSON.parse(localStorage.getItem('cm_saved_meals') || '[]');
+      let dirty = false;
+      meals.forEach(m => { if (!m.id) { m.id = crypto.randomUUID(); dirty = true; } });
+      if (dirty) localStorage.setItem('cm_saved_meals', JSON.stringify(meals));
+      return meals;
+    } catch { return []; }
+  }
+  function saveSavedMeals(m) { localStorage.setItem('cm_saved_meals', JSON.stringify(m)); }
+
+  function starMeal(name, calories) {
+    const saved = getSavedMeals();
+    if (saved.some(m => m.name === name)) return;
+    saved.unshift({ id: crypto.randomUUID(), name, calories });
+    if (saved.length > SAVED_MAX) saved.pop();
+    saveSavedMeals(saved);
+    refreshDashboard();
+  }
+
+  function removeSavedMeal(id) {
+    const saved = getSavedMeals().filter(m => m.id !== id);
+    saveSavedMeals(saved);
+    refreshDashboard();
+  }
+
+  // ── Recent meals ──
+  function getRecentMeals() {
+    const logs = getLogs();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const seen = new Set();
+    const recent = [];
+    const days = Object.keys(logs).sort().reverse();
+    for (const day of days) {
+      if (new Date(day + 'T00:00:00') < cutoff) break;
+      for (const meal of (logs[day] || [])) {
+        if (!seen.has(meal.name)) { seen.add(meal.name); recent.push(meal); }
+        if (recent.length >= 5) return recent;
+      }
+    }
+    return recent;
+  }
+
+  // ── Storage helpers ──
   function getLogs() { try { return JSON.parse(localStorage.getItem('cm_logs') || '{}'); } catch { return {}; } }
   function saveLogs(l) { localStorage.setItem('cm_logs', JSON.stringify(l)); }
-
-  function getTodayMeals() {
-    const day = getLogs()[todayStr()];
-    return Array.isArray(day) ? day : [];
-  }
-  function saveTodayMeals(meals) {
-    const logs = getLogs();
-    logs[todayStr()] = meals;
-    saveLogs(logs);
-  }
-
-  function totalForDay(meals) {
-    if (!Array.isArray(meals)) return 0;
-    return meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-  }
-
-  function getStreak() {
-    try { return JSON.parse(localStorage.getItem('cm_streak') || '{"currentStreak":0,"lastLoggedDate":"","longestStreak":0}'); }
-    catch { return { currentStreak: 0, lastLoggedDate: '', longestStreak: 0 }; }
-  }
+  function getTodayMeals() { const day = getLogs()[todayStr()]; return Array.isArray(day) ? day : []; }
+  function saveTodayMeals(meals) { const logs = getLogs(); logs[todayStr()] = meals; saveLogs(logs); }
+  function totalForDay(meals) { if (!Array.isArray(meals)) return 0; return meals.reduce((s, m) => s + (m.calories || 0), 0); }
+  function getStreak() { try { return JSON.parse(localStorage.getItem('cm_streak') || '{"currentStreak":0,"lastLoggedDate":"","longestStreak":0}'); } catch { return { currentStreak: 0, lastLoggedDate: '', longestStreak: 0 }; } }
   function getBadges() { try { return JSON.parse(localStorage.getItem('cm_badges') || '[]'); } catch { return []; } }
 
   function updateStreak(target) {
@@ -279,18 +489,11 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
     const total = totalForDay(meals);
     const onTrack = meals.length > 0 && total <= target;
     let streak = getStreak();
-
     if (onTrack) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       const yStr = yesterday.toISOString().split('T')[0];
-      if (streak.lastLoggedDate === yStr) {
-        streak.currentStreak += 1;
-        streak.lastLoggedDate = today;
-      } else if (streak.lastLoggedDate !== today) {
-        streak.currentStreak = 1;
-        streak.lastLoggedDate = today;
-      }
+      if (streak.lastLoggedDate === yStr) { streak.currentStreak += 1; streak.lastLoggedDate = today; }
+      else if (streak.lastLoggedDate !== today) { streak.currentStreak = 1; streak.lastLoggedDate = today; }
       if (streak.currentStreak > streak.longestStreak) streak.longestStreak = streak.currentStreak;
     } else if (streak.lastLoggedDate && streak.lastLoggedDate !== today) {
       const diff = Math.floor((Date.now() - new Date(streak.lastLoggedDate + 'T00:00:00').getTime()) / 86400000);
@@ -313,74 +516,115 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
     const consumed = totalForDay(meals);
     const remaining = target - consumed;
     const pct = Math.min(100, Math.round((consumed / target) * 100));
-
     document.getElementById('cal-consumed').textContent = consumed.toLocaleString();
     document.getElementById('cal-goal').textContent = target.toLocaleString();
     document.getElementById('cal-remaining').textContent = Math.max(0, remaining).toLocaleString();
     document.getElementById('cal-percent-text').textContent = `${pct}% of goal`;
-
     const fill = document.getElementById('progress-fill');
     fill.style.width = pct + '%';
     fill.className = 'progress-fill';
     document.getElementById('cal-progress').setAttribute('aria-valuenow', String(pct));
-
     const statusEl = document.getElementById('status-indicator');
-    if (consumed <= target) {
-      statusEl.textContent = 'On Track ✅';
-      statusEl.style.color = 'var(--color-accent-deep)';
-    } else if (consumed <= target + 50) {
-      statusEl.textContent = 'Almost There 🎯';
-      statusEl.style.color = 'var(--color-warning)';
-      fill.classList.add('close');
-    } else {
-      statusEl.textContent = 'Over Budget ⚠️';
-      statusEl.style.color = 'var(--color-error)';
-      fill.classList.add('over');
+    if (consumed <= target) { statusEl.textContent = 'On Track ✅'; statusEl.style.color = 'var(--color-accent-deep)'; }
+    else if (consumed <= target + 50) { statusEl.textContent = 'Almost There 🎯'; statusEl.style.color = 'var(--color-warning)'; fill.classList.add('close'); }
+    else { statusEl.textContent = 'Over Budget ⚠️'; statusEl.style.color = 'var(--color-error)'; fill.classList.add('over'); }
+  }
+
+  // ── Quick-add chips ──
+  function buildQuickChips() {
+    const saved = getSavedMeals();
+    const recent = getRecentMeals();
+    const savedNames = new Set(saved.map(m => m.name));
+    const recentOnly = recent.filter(m => !savedNames.has(m.name));
+
+    let html = '';
+    if (saved.length > 0) {
+      html += `<div class="chip-section"><span class="chip-label">Your saved meals</span><div class="chip-row">`;
+      html += saved.map(m => `<button type="button" class="quick-chip" data-name="${escHtml(m.name)}" data-cal="${m.calories}">⭐ ${escHtml(m.name)} <span class="chip-cal">${m.calories} kcal</span></button>`).join('');
+      html += `</div></div>`;
     }
+    if (recentOnly.length > 0) {
+      html += `<div class="chip-section"><span class="chip-label">Recently logged</span><div class="chip-row">`;
+      html += recentOnly.map(m => `<button type="button" class="quick-chip" data-name="${escHtml(m.name)}" data-cal="${m.calories}">${escHtml(m.name)} <span class="chip-cal">${m.calories} kcal</span></button>`).join('');
+      html += `</div></div>`;
+    }
+    return html;
+  }
+
+  function lookupCounterHtml() {
+    const rem = getRemainingLookups();
+    if (rem === 0) return `<p class="lookup-counter exhausted">Enter meals manually today — AI lookups reset tomorrow 🔄</p>`;
+    return `<p class="lookup-counter">${rem}/${DAILY_LIMIT} AI lookups remaining today</p>`;
   }
 
   // ── Meal List Card ──
   function renderMeals() {
     const meals = getTodayMeals();
     const total = totalForDay(meals);
+    const saved = getSavedMeals();
+    const savedByName = new Map(saved.map(m => [m.name, m]));
     const root = document.getElementById('meal-sections-root');
 
     root.innerHTML = `
       <div class="card-lg" id="meals-card">
         <div class="meals-header">
           <h2 class="eyebrow" style="font-size:13px">Today's Meals</h2>
-          <span class="meals-total${total > 0 ? ' has-food' : ''}">${total} kcal</span>
+          <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <span class="meals-total${total > 0 ? ' has-food' : ''}">${total} kcal</span>
+            ${meals.length > 0 ? `<div id="clear-day-wrap"><button class="clear-day-btn" id="clear-day-btn" title="Clear all meals for today">Clear day</button></div>` : ''}
+          </div>
         </div>
         <div class="divider" style="margin:var(--space-md) 0 0"></div>
 
         <div class="meals-list" id="meals-list">
           ${meals.length > 0
-            ? meals.map((m, i) => `
+            ? meals.map((m, i) => {
+                const se = savedByName.get(m.name);
+                return `
                 <div class="meal-item">
                   <span class="meal-item-name">${escHtml(m.name)}</span>
                   <span class="meal-item-cal">${m.calories} kcal</span>
                   <div class="meal-item-actions" id="del-actions-${i}">
+                    <button class="meal-star${se ? ' starred' : ''}" data-name="${escHtml(m.name)}" data-cal="${m.calories}" data-saved-id="${se ? escHtml(se.id) : ''}" aria-label="${se ? 'Unsave meal' : 'Save meal'}" title="${se ? 'Unsave meal' : 'Save meal'}">${se ? '⭐' : '☆'}</button>
                     <button class="meal-item-del" data-index="${i}" aria-label="Remove ${escHtml(m.name)}" title="Remove">×</button>
                   </div>
-                </div>`).join('')
+                </div>`;
+              }).join('')
             : `<p class="meals-empty">Nothing logged yet. Add your first meal below!</p>`
           }
         </div>
 
         <div class="section-logger hidden" id="meal-logger">
+          ${buildQuickChips()}
+          ${lookupCounterHtml()}
           <p class="form-label">What did you eat?</p>
-          <input class="form-input" id="logger-input" type="text" placeholder="e.g. oatmeal with banana and a coffee" autocomplete="off" />
+          <input class="form-input" id="logger-input" type="text" placeholder="e.g. oatmeal with banana and a coffee" autocomplete="off" maxlength="200" />
+          <p class="input-trim-notice hidden" id="input-trim-notice" style="font-size:12px;color:var(--color-warning-deep)">Input trimmed to 200 characters</p>
           <button type="button" class="btn-accent" style="width:100%" id="lookup-btn">🔍 Look up calories</button>
           <div class="logger-status hidden" id="logger-status"></div>
           <div class="logger-results hidden" id="logger-results"></div>
           <div class="manual-entry hidden" id="manual-entry">
-            <p class="form-hint">Couldn't reach estimator. Enter manually:</p>
-            <input type="text" class="form-input" id="manual-name" placeholder="Meal name" />
+            <p class="form-hint" id="manual-hint">Enter meal details manually:</p>
+            <input type="text" class="form-input" id="manual-name" placeholder="Meal name" maxlength="200" />
             <input type="number" class="form-input" id="manual-cal" placeholder="Calories (kcal)" min="1" />
             <button type="button" class="btn-accent" style="width:100%" id="manual-add-btn">Add</button>
           </div>
           <button type="button" class="logger-cancel" id="logger-cancel-btn">Cancel</button>
         </div>
+
+        ${saved.length > 0 ? `
+        <div class="saved-meals-section" id="saved-meals-section">
+          <div class="divider" style="margin:var(--space-md) 0"></div>
+          <p class="eyebrow" style="font-size:11px;margin-bottom:var(--space-xs)">Saved Meals</p>
+          <div class="saved-meals-list">
+            ${saved.map(m => `
+              <div class="saved-meal-row">
+                <span class="saved-meal-name">${escHtml(m.name)}</span>
+                <span class="saved-meal-cal">${m.calories} kcal</span>
+                <button class="saved-meal-remove" data-id="${escHtml(m.id)}" aria-label="Remove ${escHtml(m.name)} from saved">×</button>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
 
         <button type="button" class="btn-secondary" style="width:100%;margin-top:var(--space-md)" id="log-meal-btn">+ Log a Meal</button>
       </div>
@@ -389,23 +633,61 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
     document.getElementById('log-meal-btn').addEventListener('click', openLogger);
     document.getElementById('logger-cancel-btn').addEventListener('click', closeLogger);
     document.getElementById('lookup-btn').addEventListener('click', runLookup);
-    document.getElementById('logger-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); runLookup(); }
+
+
+    const loggerInput = document.getElementById('logger-input');
+    loggerInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runLookup(); } });
+    loggerInput.addEventListener('input', () => {
+      const notice = document.getElementById('input-trim-notice');
+      if (loggerInput.value.length >= 200) notice.classList.remove('hidden');
+      else notice.classList.add('hidden');
     });
+
     document.getElementById('manual-add-btn').addEventListener('click', () => {
-      const name = document.getElementById('manual-name').value.trim();
+      const name = sanitizeInput(document.getElementById('manual-name').value.trim());
       const cal = parseInt(document.getElementById('manual-cal').value);
       if (!name || !cal || cal < 1) return;
       addMeal(name, cal);
     });
 
-    // Delete with inline confirmation via event delegation
-    root.addEventListener('click', e => {
+    if (_rootClickHandler) root.removeEventListener('click', _rootClickHandler);
+    _rootClickHandler = e => {
+      const chip = e.target.closest('.quick-chip');
+      const star = e.target.closest('.meal-star');
       const del = e.target.closest('.meal-item-del');
       const yes = e.target.closest('.del-yes');
       const no  = e.target.closest('.del-no');
+      const rmSaved = e.target.closest('.saved-meal-remove');
+      const clearDay = e.target.closest('.clear-day-btn');
+      const clearYes = e.target.closest('.clear-day-yes');
+      const clearNo  = e.target.closest('.clear-day-no');
 
-      if (del) {
+      if (clearDay) {
+        const wrap = document.getElementById('clear-day-wrap');
+        wrap.innerHTML = `
+          <span class="del-confirm-text">Clear all?</span>
+          <button class="clear-day-yes del-yes">Yes</button>
+          <button class="clear-day-no del-no">No</button>
+        `;
+      } else if (clearYes) {
+        saveTodayMeals([]);
+        refreshDashboard();
+      } else if (clearNo) {
+        const wrap = document.getElementById('clear-day-wrap');
+        wrap.innerHTML = `<button class="clear-day-btn" title="Clear all meals for today">Clear day</button>`;
+      } else if (chip) {
+        chip.disabled = true;
+        chip.style.opacity = '0.5';
+        chip.style.pointerEvents = 'none';
+        addMeal(chip.dataset.name, parseInt(chip.dataset.cal));
+        setTimeout(() => { try { chip.disabled = false; chip.style.opacity = ''; chip.style.pointerEvents = ''; } catch {} }, 1000);
+      } else if (star) {
+        if (star.classList.contains('starred')) {
+          removeSavedMeal(star.dataset.savedId);
+        } else {
+          starMeal(star.dataset.name, parseInt(star.dataset.cal));
+        }
+      } else if (del) {
         const idx = del.dataset.index;
         const actionsEl = document.getElementById(`del-actions-${idx}`);
         actionsEl.innerHTML = `
@@ -420,11 +702,12 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
         saveTodayMeals(meals);
         refreshDashboard();
       } else if (no) {
-        const idx = no.dataset.index;
-        const actionsEl = document.getElementById(`del-actions-${idx}`);
-        actionsEl.innerHTML = `<button class="meal-item-del" data-index="${idx}" aria-label="Remove" title="Remove">×</button>`;
+        refreshDashboard();
+      } else if (rmSaved) {
+        removeSavedMeal(rmSaved.dataset.id);
       }
-    });
+    };
+    root.addEventListener('click', _rootClickHandler);
   }
 
   function openLogger() {
@@ -445,94 +728,368 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
     document.getElementById('log-meal-btn')?.classList.remove('hidden');
   }
 
+  function showManual(prefillName, hint) {
+    const manualEl = document.getElementById('manual-entry');
+    manualEl.classList.remove('hidden');
+    if (hint) document.getElementById('manual-hint').textContent = hint;
+    if (prefillName) document.getElementById('manual-name').value = prefillName;
+  }
+
+  // ── Cache lookup steps ──
+  function cacheStepExact(normInput) {
+    const cache = getCache();
+    return resolveCache(cache, normInput);
+  }
+
+  function cacheStepQuantity(normInput) {
+    const parts = normInput.split(/\s+/);
+    const qty = parseFloat(parts[0]);
+    if (!qty || isNaN(qty) || parts.length < 2) return null;
+    const rest = parts.slice(1).join(' ');
+    const cache = getCache();
+    const hit = resolveCache(cache, rest);
+    if (!hit) return null;
+    return { hit, rest, qty, scaledCal: Math.round(hit.calories * qty) };
+  }
+
+  function cacheStepSplit(normInput) {
+    const separators = /\s+(?:and|&|\+)\s+/;
+    const parts = normInput.split(separators).map(p => p.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    const cache = getCache();
+    const found = [], missing = [];
+    for (const part of parts) {
+      let hit = resolveCache(cache, part);
+      let qty = 1;
+      if (!hit) {
+        const subParts = part.split(/\s+/);
+        const q = parseFloat(subParts[0]);
+        if (!isNaN(q) && q > 0 && subParts.length > 1) {
+          const rest = subParts.slice(1).join(' ');
+          hit = resolveCache(cache, rest);
+          if (hit) qty = q;
+        }
+      }
+      if (hit) found.push({ part, hit, qty, scaledCal: Math.round(hit.calories * qty) });
+      else missing.push(part);
+    }
+    return { found, missing, parts };
+  }
+
+  function cacheStepPartial(normInput) {
+    const words = normInput.split(/\s+/).filter(w => !UNITS.includes(w) && isNaN(parseFloat(w)));
+    if (!words.length) return null;
+    const core = words.reduce((a, b) => b.length > a.length ? b : a, '');
+    const cache = getCache();
+    let best = null, bestTime = 0;
+    for (const [k, v] of Object.entries(cache)) {
+      if (typeof v === 'object' && k.includes(core) && v.cachedAt > bestTime) {
+        best = v; bestTime = v.cachedAt;
+      }
+    }
+    return best ? { hit: best, core } : null;
+  }
+
+  // ── Main lookup flow ──
   async function runLookup() {
     const inp = document.getElementById('logger-input');
-    const query = inp?.value.trim();
-    if (!query) return;
+    const rawQuery = inp?.value.trim();
+    if (!rawQuery) return;
+
+    const sanitized = sanitizeInput(rawQuery);
+    if (!sanitized) {
+      showInlineMessage('Please enter a food or meal description', 'error');
+      return;
+    }
+
+    if (isOffensiveInput(sanitized)) {
+      console.warn('[Filter] Blocked input:', sanitized);
+      showInlineMessage('Please keep meal descriptions food-related 🥗', 'error');
+      if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
+      return;
+    }
 
     const statusEl = document.getElementById('logger-status');
     const resultsEl = document.getElementById('logger-results');
     const manualEl = document.getElementById('manual-entry');
 
-    statusEl.innerHTML = '<span class="spinner"></span> Estimating calories with AI…';
-    statusEl.classList.remove('hidden');
+    statusEl.classList.add('hidden');
     resultsEl.classList.add('hidden');
     manualEl.classList.add('hidden');
 
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
-        body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
-          messages: [
-            { role: 'system', content: 'You are a nutrition expert. When given food descriptions, estimate calories accurately. Always return ONLY valid JSON with no markdown, no explanation, no backticks. Format: {"foods": [{"name": "food name", "calories": number, "portion": "portion description"}], "total_calories": number, "confidence": "high/medium/low"}' },
-            { role: 'user', content: `Estimate calories for: ${query}` },
-          ],
-          temperature: 0.1,
-          max_tokens: 500,
-        }),
-      });
+    const normInput = normalize(sanitized);
 
-      if (!res.ok) { const t = await res.text(); console.error('[Groq]', res.status, t); throw new Error(); }
+    // Step 1: exact
+    const exact = cacheStepExact(normInput);
+    if (exact) {
+      showCacheResult(exact.name, exact.calories, 'cache');
+      return;
+    }
+
+    // Step 2: quantity scaling
+    const quantityMatch = cacheStepQuantity(normInput);
+    if (quantityMatch) {
+      showQuantitySuggestion(quantityMatch, normInput, sanitized);
+      return;
+    }
+
+    // Step 3: multi-item split
+    const splitMatch = cacheStepSplit(normInput);
+    if (splitMatch && splitMatch.found.length > 0) {
+      showSplitSuggestion(splitMatch, sanitized);
+      return;
+    }
+
+    // Step 4: partial word
+    const partial = cacheStepPartial(normInput);
+    if (partial) {
+      showPartialSuggestion(partial, sanitized);
+      return;
+    }
+
+    // Step 5: API
+    if (limitReached()) {
+      showManual(sanitized, "You've used your AI lookups for today — no worries, just enter manually below!");
+      return;
+    }
+
+    await callGroqAPI(sanitized, normInput);
+  }
+
+  function showInlineMessage(msg, type) {
+    const el = document.getElementById('logger-status');
+    el.innerHTML = `<span style="color:var(--color-${type === 'error' ? 'error' : 'mute'})">${escHtml(msg)}</span>`;
+    el.classList.remove('hidden');
+  }
+
+  function showCacheResult(name, calories, source) {
+    addMeal(name, calories);
+  }
+
+  function showQuantitySuggestion({ hit, qty, scaledCal }, normInput, originalQuery) {
+    const resultsEl = document.getElementById('logger-results');
+    resultsEl.innerHTML = `
+      <div class="cache-suggestion">
+        <p>${escHtml(hit.name)} × ${qty} — ${scaledCal} kcal?</p>
+        <div class="suggestion-actions">
+          <button class="btn-accent btn-sm" id="qty-yes">✓ Yes, add it</button>
+          <button class="btn-secondary btn-sm" id="qty-no">✗ No, search instead</button>
+        </div>
+      </div>
+    `;
+    resultsEl.classList.remove('hidden');
+    document.getElementById('qty-yes').addEventListener('click', () => {
+      addMeal(`${hit.name} ×${qty}`, scaledCal);
+    });
+    document.getElementById('qty-no').addEventListener('click', async () => {
+      resultsEl.classList.add('hidden');
+      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
+      await callGroqAPI(originalQuery, normalize(originalQuery));
+    });
+  }
+
+  function showSplitSuggestion({ found, missing }, originalQuery) {
+    const resultsEl = document.getElementById('logger-results');
+    const totalFound = found.reduce((s, f) => s + f.scaledCal, 0);
+    let html = `<div class="cache-suggestion"><p style="font-weight:600;margin-bottom:var(--space-xs)">Found in your history:</p>`;
+    found.forEach(f => {
+      const label = f.qty > 1 ? `${escHtml(f.hit.name)} ×${f.qty}` : escHtml(f.hit.name);
+      html += `<p>✓ ${label} — ${f.scaledCal} kcal</p>`;
+    });
+    if (missing.length > 0) {
+      html += `<p style="color:var(--color-mute);font-size:12px">Still searching: ${missing.map(escHtml).join(', ')}</p>`;
+    }
+    html += `<p style="font-weight:600;margin-top:var(--space-xs)">Total: ${totalFound} kcal</p>`;
+    html += `<div class="suggestion-actions">`;
+    if (missing.length === 0) {
+      html += `<button class="btn-accent btn-sm" id="split-all">Add all</button>`;
+      html += `<button class="btn-secondary btn-sm" id="split-pick">Pick individually</button>`;
+    }
+    html += `<button class="btn-secondary btn-sm" id="split-search">Search instead</button>`;
+    html += `</div></div>`;
+    resultsEl.innerHTML = html;
+    resultsEl.classList.remove('hidden');
+
+    document.getElementById('split-all')?.addEventListener('click', () => {
+      found.forEach(f => {
+        const name = f.qty > 1 ? `${f.hit.name} ×${f.qty}` : f.hit.name;
+        addMeal(name, f.scaledCal);
+      });
+    });
+    document.getElementById('split-pick')?.addEventListener('click', () => {
+      resultsEl.innerHTML = found.map((f, i) => {
+        const label = f.qty > 1 ? `${escHtml(f.hit.name)} ×${f.qty}` : escHtml(f.hit.name);
+        return `
+        <div class="cache-suggestion" style="margin-bottom:var(--space-xs)">
+          <p>${label} — ${f.scaledCal} kcal</p>
+          <div class="suggestion-actions">
+            <button class="btn-accent btn-sm split-item-yes" data-idx="${i}">✓ Add</button>
+            <button class="btn-secondary btn-sm split-item-no" data-idx="${i}">✗ Skip</button>
+          </div>
+        </div>`;
+      }).join('');
+      resultsEl.querySelectorAll('.split-item-yes').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const f = found[parseInt(btn.dataset.idx)];
+          const name = f.qty > 1 ? `${f.hit.name} ×${f.qty}` : f.hit.name;
+          addMeal(name, f.scaledCal);
+          btn.closest('.cache-suggestion').remove();
+        });
+      });
+      resultsEl.querySelectorAll('.split-item-no').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest('.cache-suggestion').remove());
+      });
+    });
+    document.getElementById('split-search')?.addEventListener('click', async () => {
+      resultsEl.classList.add('hidden');
+      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
+      await callGroqAPI(originalQuery, normalize(originalQuery));
+    });
+  }
+
+  function showPartialSuggestion({ hit, core }, originalQuery) {
+    const resultsEl = document.getElementById('logger-results');
+    resultsEl.innerHTML = `
+      <div class="cache-suggestion">
+        <p>Did you mean <strong>${escHtml(hit.name)}</strong> (${hit.calories} kcal)?</p>
+        <div class="suggestion-actions">
+          <button class="btn-accent btn-sm" id="partial-yes">✓ Yes</button>
+          <button class="btn-secondary btn-sm" id="partial-no">✗ No, search</button>
+        </div>
+      </div>
+    `;
+    resultsEl.classList.remove('hidden');
+    document.getElementById('partial-yes').addEventListener('click', () => addMeal(hit.name, hit.calories));
+    document.getElementById('partial-no').addEventListener('click', async () => {
+      resultsEl.classList.add('hidden');
+      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
+      await callGroqAPI(originalQuery, normalize(originalQuery));
+    });
+  }
+
+  async function callGroqAPI(sanitizedQuery, normInput) {
+    const statusEl = document.getElementById('logger-status');
+    const resultsEl = document.getElementById('logger-results');
+    statusEl.innerHTML = '<span class="spinner"></span> Estimating calories with AI…';
+    statusEl.classList.remove('hidden');
+    resultsEl.classList.add('hidden');
+
+    try {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      let res;
+      if (isLocalhost) {
+        res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.PUBLIC_GROQ_API_KEY_DEV}`,
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: 'You are a nutrition expert. Only respond about food and calories. If asked about anything else, respond with: {"error": "not food"}. Always return valid JSON only. Format: {"foods": [{"name": "food name", "calories": number, "portion": "portion description"}], "total_calories": number, "confidence": "high/medium/low"}' },
+              { role: 'user', content: `Food description: """${sanitizedQuery}"""` },
+            ],
+            temperature: 0.1,
+            max_tokens: 500,
+          }),
+        });
+      } else {
+        res = await fetch('/api/meal-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: sanitizedQuery }),
+        });
+      }
+
+      if (res.status === 429) {
+        statusEl.classList.add('hidden');
+        showManual(sanitizedQuery, 'Our AI estimator is busy right now. Please try again in a minute or enter calories manually.');
+        return;
+      }
+      if (!res.ok) { console.error('[meal-lookup]', res.status); throw new Error(); }
 
       const data = await res.json();
       const rawText = data?.choices?.[0]?.message?.content ?? '';
       const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
       const parsed = JSON.parse(cleaned);
-      if (!parsed.foods?.length) throw new Error();
 
-      showResults(parsed, query);
-    } catch {
+      if (parsed.error || !parsed.foods?.length) throw new Error('not food');
+
+      incrementUsage();
       statusEl.classList.add('hidden');
-      manualEl.classList.remove('hidden');
-      document.getElementById('manual-name').value = query;
+
+      // Cache each individual ingredient for future partial/direct lookups
+      parsed.foods.forEach(food => {
+        const normFoodName = normalize(food.name);
+        cacheSet(normFoodName, { name: food.name, calories: Math.round(food.calories) });
+      });
+      // Cache the original query with combined total so future exact lookups skip the API
+      cacheSet(normInput, { name: sanitizedQuery, calories: Math.round(parsed.total_calories) });
+
+      showResults(parsed, sanitizedQuery);
+    } catch (err) {
+      console.error('[Groq error]', err);
+      statusEl.classList.add('hidden');
+      showManual(sanitizedQuery, "Couldn't reach estimator. Enter manually:");
     }
   }
 
   function showResults(result, originalQuery) {
-    const statusEl = document.getElementById('logger-status');
     const resultsEl = document.getElementById('logger-results');
-    statusEl.classList.add('hidden');
-
     const lowConf = result.confidence === 'low';
-    resultsEl.innerHTML = `
-      ${lowConf ? '<p class="confidence-warning">⚠️ Estimate may vary — tap any calorie to edit</p>' : ''}
-      ${result.foods.map((food) => `
-        <div class="result-food-item">
-          <div class="result-food-info">
-            <span class="result-food-name">${escHtml(food.name)}</span>
-            <span class="result-food-portion">${escHtml(food.portion || '')}</span>
-          </div>
-          <input type="number" class="form-input result-cal-input" value="${Math.round(food.calories)}" min="0" aria-label="Calories for ${escHtml(food.name)}" />
-          <span class="result-cal-unit">kcal</span>
-        </div>
-      `).join('')}
-      <div class="results-total-row">
-        <span>Total: <strong class="results-total-num">${Math.round(result.total_calories)} kcal</strong></span>
-        <button type="button" class="btn-accent btn-sm">Add to log</button>
+    let currentTotal = Math.round(result.total_calories);
+
+    const breakdownRows = result.foods.map(food => `
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--color-hairline)">
+        <span style="color:var(--color-body)">${escHtml(food.name)}</span>
+        <span style="font-family:var(--font-mono);color:var(--color-mute)">${Math.round(food.calories)} kcal</span>
       </div>
+    `).join('');
+
+    resultsEl.innerHTML = `
+      ${lowConf ? '<p class="confidence-warning">⚠️ Estimate may vary — use Edit total to adjust</p>' : ''}
+      <div class="result-food-item" style="flex-direction:column;align-items:stretch;gap:var(--space-xs)">
+        <p style="font-weight:600;font-size:14px;margin-bottom:var(--space-xxs)">${escHtml(originalQuery)}</p>
+        <div>${breakdownRows}</div>
+      </div>
+      <div class="results-total-row">
+        <span>Total: <strong class="results-total-num">${currentTotal} kcal</strong></span>
+        <div style="display:flex;gap:var(--space-xs)">
+          <button type="button" class="btn-secondary btn-sm" id="edit-total-btn">Edit total</button>
+          <button type="button" class="btn-accent btn-sm" id="add-to-log-btn">Add to log</button>
+        </div>
+      </div>
+      <input type="number" class="form-input hidden" id="total-cal-edit" value="${currentTotal}" min="0" style="margin-top:var(--space-xs)" />
     `;
     resultsEl.classList.remove('hidden');
 
-    const recompute = () => {
-      const sum = Array.from(resultsEl.querySelectorAll('.result-cal-input'))
-        .reduce((s, inp) => s + (parseFloat(inp.value) || 0), 0);
-      resultsEl.querySelector('.results-total-num').textContent = Math.round(sum) + ' kcal';
-    };
-    resultsEl.querySelectorAll('.result-cal-input').forEach(inp => inp.addEventListener('input', recompute));
+    const totalNumEl = resultsEl.querySelector('.results-total-num');
+    const editInput = document.getElementById('total-cal-edit');
 
-    resultsEl.querySelector('.btn-accent').addEventListener('click', () => {
-      const total = Math.round(Array.from(resultsEl.querySelectorAll('.result-cal-input'))
-        .reduce((s, inp) => s + (parseFloat(inp.value) || 0), 0));
-      addMeal(originalQuery, total);
+    document.getElementById('edit-total-btn').addEventListener('click', () => {
+      editInput.classList.toggle('hidden');
+      if (!editInput.classList.contains('hidden')) { editInput.focus(); editInput.select(); }
+    });
+
+    editInput.addEventListener('input', () => {
+      currentTotal = Math.round(parseFloat(editInput.value) || 0);
+      totalNumEl.textContent = currentTotal + ' kcal';
+    });
+
+    document.getElementById('add-to-log-btn').addEventListener('click', () => {
+      addMeal(originalQuery, currentTotal);
     });
   }
 
-  function addMeal(name, calories) {
+  function addMealSilent(name, calories) {
     const meals = getTodayMeals();
     meals.push({ name, calories });
     saveTodayMeals(meals);
+  }
+
+  function addMeal(name, calories) {
+    addMealSilent(name, calories);
     closeLogger();
     refreshDashboard();
   }
@@ -573,5 +1130,11 @@ const groqApiKey = import.meta.env.PUBLIC_GROQ_API_KEY ?? '';
     document.getElementById('goal-label').textContent =
       `Goal: ${GOAL_LABELS[goal] || 'Maintain Weight'} — ${target.toLocaleString()} kcal/day`;
     refreshDashboard();
+
+    const prefill = localStorage.getItem('cm_prefill_meal');
+    if (prefill) {
+      localStorage.removeItem('cm_prefill_meal');
+      try { const { name, calories } = JSON.parse(prefill); if (name && calories > 0) addMeal(name, calories); } catch {}
+    }
   }
 </script>
