@@ -32,15 +32,13 @@ const jsonLd = {
         </span>
       </div>
       <h1 class="hero-heading">
-        Finally know if you're<br class="hero-br" />
-        eating right. Free, forever.
+        A smarter way <span style="white-space:nowrap">to track</span> your health.
       </h1>
       <p class="hero-subheadline">
-        Calculate your maintenance calories, log your meals in plain English,
-        and build a streak worth showing off.
+        No calorie counting. No guilt. Just simple daily habits that actually stick.
       </p>
       <div class="hero-cta-row" id="hero-cta-row">
-        <a href="/calculator" class="btn-primary btn-hero" id="hero-primary-cta">Calculate My Calories</a>
+        <a href="/calculator" class="btn-primary btn-hero" id="hero-primary-cta">Get Started Free</a>
         <a href="/dashboard" class="btn-secondary btn-hero hidden" id="hero-dashboard-cta">Go to Dashboard</a>
       </div>
       <p class="hero-note">No account needed. Your data stays on your device.</p>
@@ -77,42 +75,42 @@ const jsonLd = {
     <div class="container">
       <div class="features-header">
         <p class="eyebrow">How it works</p>
-        <h2 class="section-heading">Everything you need to stay on track.</h2>
+        <h2 class="section-heading">Everything you need to build better habits.</h2>
         <p class="text-body-lg features-subtitle">
-          Three tools in one — a precise calculator, a smart meal logger, and a habit streak system that keeps you honest.
+          Visual plate logging, daily habit tracking, and streaks — designed to make healthy living feel effortless.
         </p>
       </div>
       <div class="features-grid">
         <article class="feature-card card">
-          <div class="feature-icon feature-icon-blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <div class="feature-icon feature-icon-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path></svg>
           </div>
-          <h3 class="feature-title">Precision Calculator</h3>
-          <p class="text-body feature-desc">Uses the scientifically-validated Mifflin-St Jeor equation to calculate your exact maintenance calories based on your body and lifestyle.</p>
-          <a href="/calculator" class="feature-link">
-            Calculate now
+          <h3 class="feature-title">🌱 Visual Plate Logging</h3>
+          <p class="text-body feature-desc">See your meal balance at a glance. Drag sections on a visual plate circle to match what you actually ate — no calorie counting required.</p>
+          <a href="/dashboard" class="feature-link">
+            Try it now
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
           </a>
         </article>
 
         <article class="feature-card card">
-          <div class="feature-icon feature-icon-green">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <div class="feature-icon feature-icon-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a10 10 0 0 1-10-10 10 10 0 0 1 10-10 10 10 0 0 1 10 10 10 10 0 0 1-10 10z"></path><path d="M12 8v4l3 3"></path></svg>
           </div>
-          <h3 class="feature-title">Plain-English Logging</h3>
-          <p class="text-body feature-desc">Type "2 scrambled eggs and a cup of milk" and get accurate calorie data instantly. No barcode scanning, no searching through databases manually.</p>
+          <h3 class="feature-title">💧 Daily Habits</h3>
+          <p class="text-body feature-desc">Water, sleep, mood and activity in one place. Track the simple habits that compound into lasting health — without the overwhelm.</p>
           <a href="/dashboard" class="feature-link">
-            Try logging
+            Track habits
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
           </a>
         </article>
 
         <article class="feature-card card">
           <div class="feature-icon feature-icon-orange">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path><path d="M12 6v6l4 2"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
           </div>
-          <h3 class="feature-title">Streak &amp; Badges</h3>
-          <p class="text-body feature-desc">Stay on track with a daily streak counter. Earn badges at 7, 30, and 100 days. Share your streak on social media to keep yourself accountable.</p>
+          <h3 class="feature-title">🔥 Streaks</h3>
+          <p class="text-body feature-desc">Build consistency with daily streaks and badges. Earn your Week Warrior, Monthly Master, and Century Club badges as you stay on track.</p>
           <a href="/streaks" class="feature-link">
             View streaks
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
@@ -298,7 +296,7 @@ const jsonLd = {
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .hero-br { display: none; }
+  .hero-heading { word-spacing: normal; white-space: normal; overflow-wrap: break-word; hyphens: none; }
   .hero-subheadline {
     font-size: 18px;
     color: var(--color-body);
@@ -465,7 +463,7 @@ const jsonLd = {
   .teaser-veg { background: #d1fae5; }
   .teaser-nonveg { background: #ffedd5; }
   html.dark .teaser-veg { background: #064e3b; }
-  html.dark .teaser-nonveg { background: #431407; }
+  html.dark .teaser-nonveg { background: #7c2d12; }
   .teaser-emoji { font-size: 48px; line-height: 1; }
   .teaser-body { padding: var(--space-sm) var(--space-md) var(--space-md); display: flex; flex-direction: column; gap: 6px; }
   .teaser-name { font-size: 14px; font-weight: 600; color: var(--color-ink); line-height: 1.3; }
@@ -496,8 +494,8 @@ const jsonLd = {
   .cta-band .btn-secondary:hover { background: #1a1a1a; border-color: #555; color: #f5f5f5; }
 
   /* ── Responsive ── */
-  @media (min-width: 768px) {
-    .hero-br { display: block; }
+  @media (max-width: 480px) {
+    .hero-heading { font-size: clamp(1.75rem, 6vw, 2.5rem); }
   }
   @media (max-width: 900px) {
     .features-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
@@ -505,8 +503,12 @@ const jsonLd = {
     .steps-visual { display: none; }
     .trust-divider { display: none; }
     .trust-inner { flex-direction: column; gap: var(--space-sm); align-items: flex-start; padding: 0 var(--space-md); }
-    .teaser-grid { grid-template-columns: 1fr; max-width: 360px; }
+    .teaser-grid { grid-template-columns: repeat(2, 1fr); }
     .meals-teaser-header { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 479px) {
+    .teaser-grid { grid-template-columns: 1fr; width: 100%; }
+    .teaser-card { width: 100%; max-width: 100%; min-width: 0; }
   }
   @media (max-width: 600px) {
     .hero-band { padding: var(--space-4xl) var(--space-md) var(--space-3xl); }

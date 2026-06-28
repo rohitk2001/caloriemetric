@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout
   title="Dashboard — CalorieMetric"
-  description="Track your daily calorie intake, view your streak, and stay on your goal with CalorieMetric."
+  description="Track your daily habits, view your streak, and stay on your goal with CalorieMetric."
 >
   <section class="dashboard-page">
     <div class="container">
@@ -13,19 +13,22 @@ import Layout from '../layouts/Layout.astro';
       <div id="no-tdee-state" class="no-tdee-state hidden">
         <div class="no-tdee-card card-lg">
           <div class="no-tdee-icon">📊</div>
-          <h1 class="section-heading" style="margin-top: var(--space-md);">Set up your calorie goal first.</h1>
-          <p class="text-body" style="margin-top: var(--space-sm); max-width: 400px;">Calculate your maintenance calories to unlock the dashboard and start tracking meals.</p>
-          <a href="/calculator" class="btn-primary" style="margin-top: var(--space-xl);">Calculate My Calories</a>
+          <h1 class="section-heading" style="margin-top:var(--space-md)">Set up your profile first.</h1>
+          <p class="text-body" style="margin-top:var(--space-sm);max-width:400px">Calculate your maintenance calories and choose a tracking mode to unlock the dashboard.</p>
+          <a href="/calculator" class="btn-primary" style="margin-top:var(--space-xl)">Get Started</a>
         </div>
       </div>
 
       <!-- Main dashboard -->
       <div id="dashboard-main" class="hidden">
 
-        <!-- Top Row -->
+        <!-- Top row (shared between modes) -->
         <div class="dashboard-top-row">
           <div class="date-block">
-            <p id="today-date" class="today-date"></p>
+            <div class="date-mode-row">
+              <p id="today-date" class="today-date"></p>
+              <span id="mode-badge" class="mode-badge"></span>
+            </div>
             <p id="goal-label" class="goal-label"></p>
             <p id="status-indicator" class="status-indicator"></p>
           </div>
@@ -35,53 +38,213 @@ import Layout from '../layouts/Layout.astro';
               <span id="mini-streak-count" class="mini-streak-count">0</span>
               <span class="mini-streak-label">day streak</span>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-mute);flex-shrink:0;"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-mute);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
           </a>
         </div>
 
-        <!-- Calories Summary -->
-        <section class="calories-card card-lg" aria-label="Calories summary">
-          <h2 class="eyebrow" style="margin-bottom: var(--space-md);">Today's calories</h2>
-          <div class="calories-numbers">
-            <div class="cal-block cal-block-main">
-              <span id="cal-consumed" class="cal-num">0</span>
-              <span class="cal-label">consumed</span>
-            </div>
-            <div class="cal-divider" aria-hidden="true">/</div>
-            <div class="cal-block">
-              <span id="cal-goal" class="cal-num cal-num-muted">—</span>
-              <span class="cal-label">goal</span>
-            </div>
-            <div class="cal-remaining-block">
-              <span id="cal-remaining" class="cal-remaining-num">—</span>
-              <span class="cal-label">remaining</span>
-            </div>
-          </div>
-          <div class="progress-bar" style="margin-top: var(--space-md);" role="progressbar" id="cal-progress" aria-valuemin="0" aria-valuemax="100">
-            <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
-          </div>
-          <div style="margin-top:var(--space-xs); display:flex; justify-content:flex-end;">
-            <span id="cal-percent-text" class="cal-percent-text">0% of goal</span>
-          </div>
-        </section>
+        <!-- ═══ SIMPLE DASHBOARD ═══ -->
+        <div id="simple-dashboard" class="hidden">
 
-        <!-- Main grid -->
-        <div class="dashboard-grid">
-          <!-- Meal log -->
-          <div class="meal-col">
-            <p class="logger-disclaimer">Calorie estimates are AI-generated and may vary. Always consult a nutritionist for medical advice.</p>
-            <div id="meal-sections-root"></div>
+          <!-- Today's Plates -->
+          <div class="card-lg plates-card" id="plates-card">
+            <div class="plates-card-header">
+              <h2 class="col-heading">Today's Plates</h2>
+              <span id="day-verdict-badge" class="day-verdict-badge"></span>
+            </div>
+            <div class="plates-slots" id="plates-slots"></div>
+            <div class="plate-log-nudge hidden" id="plate-log-nudge"></div>
+
+            <!-- Shared Plate Logger Panel -->
+            <div class="plate-logger-panel hidden" id="plate-logger-panel">
+              <div class="divider" style="margin:var(--space-lg) 0"></div>
+              <div class="plate-logger-header">
+                <h3 id="plate-logger-title" class="col-heading"></h3>
+                <div class="plate-logger-header-right">
+                  <button class="plate-info-btn" id="plate-info-btn" aria-label="About the Harvard Plate">ℹ️</button>
+                  <button class="logger-cancel" id="cancel-plate-btn">Cancel</button>
+                </div>
+              </div>
+              <div class="plate-circle-wrap">
+                <div class="plate-circle-container" id="plate-circle-container">
+                  <svg id="plate-svg" viewBox="0 0 200 200" width="220" height="220" style="overflow:visible;touch-action:none;display:block;margin:0 auto"></svg>
+                </div>
+              </div>
+              <!-- Harvard Plate info panel (toggles on ℹ️ click) -->
+              <div class="plate-info-panel hidden" id="plate-info-panel">
+                <p class="plate-info-title">📚 About the Harvard Plate</p>
+                <div class="plate-info-row">
+                  <span class="plate-info-icon">🥦</span>
+                  <div>
+                    <div class="plate-info-row-label">Veggies &amp; Fruits (50%)</div>
+                    <p class="plate-info-row-text">Fill half your plate with color. Keeps you full, rich in nutrients.</p>
+                    <p class="plate-info-tip">Tip: Vegetables &gt; fruits where possible.</p>
+                  </div>
+                </div>
+                <div class="plate-info-row">
+                  <span class="plate-info-icon">🍚</span>
+                  <div>
+                    <div class="plate-info-row-label">Grains &amp; Carbs (25%)</div>
+                    <p class="plate-info-row-text">Choose whole grains when you can. Brown rice, oats, whole wheat pasta.</p>
+                    <p class="plate-info-tip">Refined carbs like white bread are okay occasionally.</p>
+                  </div>
+                </div>
+                <div class="plate-info-row">
+                  <span class="plate-info-icon">🍗</span>
+                  <div>
+                    <div class="plate-info-row-label">Protein (25%)</div>
+                    <p class="plate-info-row-text">Fish, chicken, beans, eggs, tofu, nuts.</p>
+                    <p class="plate-info-tip">Try to vary your protein sources.</p>
+                  </div>
+                </div>
+                <div class="plate-info-row" style="border-bottom:none">
+                  <span class="plate-info-icon">💧</span>
+                  <div>
+                    <div class="plate-info-row-label">Don't forget water</div>
+                    <p class="plate-info-row-text">Drink water with your meals. Avoid sugary drinks.</p>
+                  </div>
+                </div>
+                <div class="plate-info-footer">
+                  <p class="plate-info-credit">Based on Harvard Healthy Eating Plate<br>Developed by Harvard T.H. Chan School of Public Health</p>
+                  <a href="https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/" target="_blank" rel="noopener noreferrer" class="plate-info-link">Learn more at Harvard.edu ↗</a>
+                </div>
+              </div>
+              <div id="plate-section-labels" class="plate-section-labels"></div>
+              <!-- Removed sections re-add pills -->
+              <div id="removed-sections-area" class="removed-sections-area"></div>
+              <!-- Inline remove confirmation -->
+              <div id="remove-confirm-area" class="remove-confirm-area"></div>
+              <!-- Verdict confirm area — populated by renderVerdictUI() -->
+              <div class="plate-verdict-row" id="plate-verdict-row"></div>
+              <input type="text" class="form-input" id="plate-note" placeholder="What did you have? (optional)" maxlength="200" style="margin-top:var(--space-md)" />
+              <!-- Hidden until verdict confirmed -->
+              <button class="btn-accent hidden" style="width:100%;margin-top:var(--space-sm)" id="log-plate-btn">Log this plate</button>
+            </div>
           </div>
 
-          <!-- Badges sidebar -->
-          <aside class="badges-col" aria-label="Achievement badges">
-            <h2 class="col-heading">Badges</h2>
-            <div class="badges-grid" id="badges-grid"></div>
-            <a href="/streaks" class="badge-more-link">
-              View streaks &amp; share
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-            </a>
-          </aside>
+          <!-- Simple secondary grid -->
+          <div class="simple-secondary-grid">
+            <div class="simple-main-col">
+
+              <div class="card-lg" id="flex-plates-card">
+                <h2 class="col-heading" style="margin-bottom:var(--space-md)">Flex Plates</h2>
+                <div id="flex-plates-content"></div>
+              </div>
+
+              <div class="card-lg" id="habits-card">
+                <h2 class="col-heading" style="margin-bottom:var(--space-md)">Daily Habits</h2>
+                <div id="habits-content"></div>
+              </div>
+
+              <div class="card-lg" id="checklist-card">
+                <h2 class="col-heading" style="margin-bottom:var(--space-md)">Daily Checklist</h2>
+                <div id="checklist-content"></div>
+              </div>
+
+              <div class="card-lg hidden" id="weight-card">
+                <h2 class="col-heading" style="margin-bottom:var(--space-md)">Weekly Weight</h2>
+                <div id="weight-content"></div>
+              </div>
+
+            </div>
+
+            <aside class="badges-col" aria-label="Achievement badges">
+              <h2 class="col-heading">Badges</h2>
+              <div class="badges-grid" id="badges-grid-simple"></div>
+              <a href="/streaks" class="badge-more-link">
+                View streaks &amp; share
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+              </a>
+            </aside>
+          </div>
+        </div>
+
+        <!-- ═══ DETAILED DASHBOARD ═══ -->
+        <div id="detailed-dashboard" class="hidden">
+
+          <section class="calories-card card-lg" aria-label="Calories summary">
+            <h2 class="eyebrow" style="margin-bottom:var(--space-md)">Today's calories</h2>
+            <div class="calories-numbers">
+              <div class="cal-block cal-block-main">
+                <span id="cal-consumed" class="cal-num">0</span>
+                <span class="cal-label">consumed</span>
+              </div>
+              <div class="cal-divider" aria-hidden="true">/</div>
+              <div class="cal-block">
+                <span id="cal-goal" class="cal-num cal-num-muted">—</span>
+                <span class="cal-label">goal</span>
+              </div>
+              <div class="cal-remaining-block">
+                <span id="cal-remaining" class="cal-remaining-num">—</span>
+                <span class="cal-label">remaining</span>
+              </div>
+            </div>
+            <div class="progress-bar" style="margin-top:var(--space-md)" role="progressbar" id="cal-progress" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-xs)">
+              <span id="cal-percent-text" class="cal-percent-text">0% of goal</span>
+            </div>
+            <div id="macro-totals" class="macro-totals hidden">
+              <div class="divider" style="margin:var(--space-md) 0 var(--space-sm)"></div>
+              <p class="eyebrow" style="margin-bottom:var(--space-sm)">Macros today</p>
+              <div class="macro-row">
+                <div class="macro-item"><span class="macro-label">Protein</span><span id="total-protein" class="macro-val">0g</span></div>
+                <div class="macro-item"><span class="macro-label">Carbs</span><span id="total-carbs" class="macro-val">0g</span></div>
+                <div class="macro-item"><span class="macro-label">Fats</span><span id="total-fats" class="macro-val">0g</span></div>
+              </div>
+            </div>
+          </section>
+
+          <div class="dashboard-grid">
+            <div class="meal-col">
+              <div id="meal-sections-root"></div>
+            </div>
+            <aside class="badges-col" aria-label="Achievement badges">
+              <h2 class="col-heading">Badges</h2>
+              <div class="badges-grid" id="badges-grid-detailed"></div>
+              <a href="/streaks" class="badge-more-link">
+                View streaks &amp; share
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+              </a>
+            </aside>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Harvard Plate First-Time Education Modal -->
+    <div class="plate-edu-overlay hidden" id="plate-edu-overlay" role="dialog" aria-modal="true" aria-labelledby="plate-edu-title">
+      <div class="plate-edu-modal">
+        <div class="plate-edu-inner">
+          <div class="plate-edu-emoji" aria-hidden="true">🍽️</div>
+          <h2 class="plate-edu-title" id="plate-edu-title">Meet the Harvard Plate Method</h2>
+          <p class="plate-edu-sub">Scientists at Harvard found the simplest way to eat healthy — no counting needed.</p>
+          <div class="plate-edu-sections">
+            <div class="plate-edu-row">
+              <span class="plate-edu-icon">🥦</span>
+              <div>
+                <div class="plate-edu-row-title">Half your plate</div>
+                <div class="plate-edu-row-sub">Veggies &amp; Fruits — Fill with color and variety</div>
+              </div>
+            </div>
+            <div class="plate-edu-row">
+              <span class="plate-edu-icon">🍚</span>
+              <div>
+                <div class="plate-edu-row-title">Quarter plate</div>
+                <div class="plate-edu-row-sub">Whole Grains — Brown rice, oats, whole wheat</div>
+              </div>
+            </div>
+            <div class="plate-edu-row">
+              <span class="plate-edu-icon">🍗</span>
+              <div>
+                <div class="plate-edu-row-title">Quarter plate</div>
+                <div class="plate-edu-row-sub">Protein — Fish, chicken, beans, eggs, tofu</div>
+              </div>
+            </div>
+          </div>
+          <p class="plate-edu-note">No calorie counting. Just balance.<br>Used by millions worldwide.</p>
+          <button class="btn-accent plate-edu-cta" id="plate-edu-cta">Got it, let's log! →</button>
         </div>
       </div>
     </div>
@@ -98,21 +261,19 @@ import Layout from '../layouts/Layout.astro';
 
   /* Top row */
   .dashboard-top-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+  .date-mode-row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
   .today-date { font-size: 24px; font-weight: 600; letter-spacing: -0.6px; color: var(--color-ink); }
+  .mode-badge { font-size: 12px; font-family: var(--font-mono); padding: 3px 8px; border-radius: var(--radius-full); background: var(--color-accent-soft); color: var(--color-accent-text); border: 1px solid transparent; white-space: nowrap; }
   .goal-label { font-size: 13px; color: var(--color-mute); font-family: var(--font-mono); margin-top: 2px; }
   .status-indicator { font-size: 14px; margin-top: var(--space-xxs); font-weight: 500; }
-  .streak-mini {
-    display: flex; align-items: center; gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md); flex-shrink: 0;
-    text-decoration: none; transition: box-shadow 0.2s;
-  }
+  .streak-mini { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); flex-shrink: 0; text-decoration: none; transition: box-shadow 0.2s; }
   .streak-mini:hover { box-shadow: var(--shadow-4); }
   .streak-fire { font-size: 24px; }
   .streak-mini-text { display: flex; flex-direction: column; line-height: 1.2; }
   .mini-streak-count { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: var(--color-ink); }
   .mini-streak-label { font-size: 12px; color: var(--color-mute); }
 
-  /* Calories card */
+  /* Calories card (detailed mode) */
   .calories-card { margin-bottom: var(--space-lg); }
   .calories-numbers { display: flex; align-items: baseline; gap: var(--space-md); flex-wrap: wrap; }
   .cal-block { display: flex; flex-direction: column; }
@@ -124,84 +285,16 @@ import Layout from '../layouts/Layout.astro';
   .cal-remaining-block { margin-left: auto; text-align: right; }
   .cal-remaining-num { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: var(--color-ink); }
   .cal-percent-text { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); }
+  .macro-row { display: flex; gap: var(--space-lg); flex-wrap: wrap; }
+  .macro-item { display: flex; flex-direction: column; gap: 2px; }
+  .macro-label { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); text-transform: uppercase; }
+  .macro-val { font-size: 16px; font-weight: 600; color: var(--color-ink); }
 
-  /* Dashboard grid */
+  /* Dashboard grid (detailed mode) */
   .dashboard-grid { display: grid; grid-template-columns: 1fr 260px; gap: var(--space-lg); align-items: start; }
   .meal-col { display: flex; flex-direction: column; gap: var(--space-sm); }
-  .logger-disclaimer { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); line-height: 1.5; margin-bottom: var(--space-xs); }
 
-  /* ── Meals Card ── */
-  .meals-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-md);
-  }
-  .meals-total { font-size: 13px; font-weight: 500; color: var(--color-mute); font-family: var(--font-mono); white-space: nowrap; }
-  .meals-total.has-food { color: var(--color-accent-deep); }
-
-  /* Meal list */
-  .meals-list { margin-top: var(--space-md); }
-  .meals-empty { font-size: 13px; color: var(--color-mute); padding: var(--space-xs) 0 var(--space-sm); font-style: italic; }
-  .meal-item {
-    display: flex; align-items: center; gap: var(--space-sm);
-    padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-hairline); font-size: 14px;
-  }
-  .meal-item:last-child { border-bottom: none; }
-  .meal-item-name { flex: 1; color: var(--color-ink); }
-  .meal-item-cal { font-weight: 600; color: var(--color-body); white-space: nowrap; font-family: var(--font-mono); font-size: 13px; }
-  .meal-item-actions { display: flex; align-items: center; gap: var(--space-xxs); flex-shrink: 0; }
-  .meal-item-del {
-    width: 22px; height: 22px; border-radius: var(--radius-xs);
-    color: var(--color-mute); display: flex; align-items: center; justify-content: center;
-    transition: color 0.15s, background 0.15s; cursor: pointer;
-    background: none; border: none; font-size: 16px; line-height: 1;
-  }
-  .meal-item-del:hover { color: var(--color-error); background: var(--color-error-soft); }
-  .del-confirm-text { font-size: 12px; color: var(--color-mute); }
-  .del-yes, .del-no {
-    font-size: 12px; padding: 2px 8px; border-radius: var(--radius-xs);
-    border: 1px solid var(--color-hairline); background: var(--color-canvas);
-    color: var(--color-ink); cursor: pointer; transition: all 0.15s; font-family: inherit;
-  }
-  .del-yes:hover { background: var(--color-error); color: white; border-color: var(--color-error); }
-  .del-no:hover { background: var(--color-canvas-soft-2); }
-
-  /* ── Inline Meal Logger ── */
-  .section-logger {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--color-hairline);
-  }
-  .logger-status { font-size: 14px; color: var(--color-mute); display: flex; align-items: center; gap: var(--space-xs); }
-  .spinner { width: 14px; height: 14px; border: 2px solid var(--color-hairline); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Results */
-  .logger-results { display: flex; flex-direction: column; gap: var(--space-sm); }
-  .confidence-warning { font-size: 12px; color: var(--color-warning-deep); background: var(--color-warning-soft); border-radius: var(--radius-sm); padding: var(--space-xxs) var(--space-sm); }
-  .result-food-item { background: var(--color-canvas-soft); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); display: flex; align-items: center; gap: var(--space-sm); }
-  .result-food-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .result-food-name { font-size: 14px; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .result-food-portion { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
-  .result-cal-input { width: 72px !important; flex-shrink: 0; text-align: right; height: 32px !important; font-weight: 600; padding: 4px 8px !important; }
-  .result-cal-unit { font-size: 12px; color: var(--color-mute); flex-shrink: 0; }
-  .results-total-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) 0; border-top: 1px solid var(--color-hairline); font-size: 14px; font-weight: 600; color: var(--color-ink); }
-
-  /* Manual entry */
-  .manual-entry { display: flex; flex-direction: column; gap: var(--space-sm); }
-
-  .logger-cancel {
-    align-self: center; font-size: 13px; color: var(--color-mute); cursor: pointer;
-    background: none; border: none; padding: 0; transition: color 0.2s; font-family: inherit;
-    text-decoration: underline; text-underline-offset: 2px;
-  }
-  .logger-cancel:hover { color: var(--color-ink); }
-
-  /* Badges col */
+  /* Badges */
   .badges-col { display: flex; flex-direction: column; gap: var(--space-md); }
   .col-heading { font-size: 16px; font-weight: 600; color: var(--color-ink); }
   .badges-grid { display: flex; flex-direction: column; gap: var(--space-sm); }
@@ -215,281 +308,312 @@ import Layout from '../layouts/Layout.astro';
   .badge-more-link { display: inline-flex; align-items: center; gap: var(--space-xxs); font-size: 13px; color: var(--color-accent-deep); font-weight: 500; transition: gap 0.2s; }
   .badge-more-link:hover { gap: var(--space-xs); }
 
-  /* ── Clear day button ── */
-  .clear-day-btn {
-    font-size: 12px; color: var(--color-mute); background: none; border: none;
-    cursor: pointer; font-family: var(--font-mono); padding: 2px 6px;
-    border-radius: var(--radius-xs); transition: color 0.15s, background 0.15s;
-    white-space: nowrap;
+  /* ── SIMPLE MODE ── */
+  .plates-card { margin-bottom: var(--space-md); }
+  .plates-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-sm); }
+  .day-verdict-badge { font-size: 14px; font-weight: 600; padding: 4px 12px; border-radius: var(--radius-full); background: var(--color-canvas-soft-2); color: var(--color-ink); border: 1px solid var(--color-hairline); }
+  .day-verdict-badge.verdict-great { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+  .day-verdict-badge.verdict-good { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+  .day-verdict-badge.verdict-keep { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+
+  .plates-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+  .plate-slot { border: 1px solid var(--color-hairline); border-radius: var(--radius-lg); padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); min-height: 120px; }
+  .plate-slot-label { font-size: 13px; font-weight: 600; color: var(--color-ink); }
+  .plate-slot-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
+  .plate-slot-logged { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .plate-slot-verdict { font-size: 13px; font-weight: 600; }
+  .plate-slot-verdict.treat { color: #1d4ed8; }
+  .plate-slot-verdict.healthy { color: #065f46; }
+  .plate-slot-sections { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); line-height: 1.6; }
+  .plate-slot-note { font-size: 12px; color: var(--color-body); font-style: italic; }
+  .plate-slot-actions { display: flex; gap: var(--space-xs); margin-top: var(--space-xs); }
+  .plate-action-btn { font-size: 12px; padding: 3px 10px; border-radius: var(--radius-xs); border: 1px solid var(--color-hairline); background: var(--color-canvas); color: var(--color-body); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .plate-action-btn:hover { background: var(--color-canvas-soft-2); }
+  .plate-action-btn.danger:hover { background: var(--color-error-soft); color: var(--color-error); border-color: var(--color-error); }
+
+  /* Plate circle logger */
+  .plate-logger-panel { padding-top: var(--space-sm); }
+  .plate-logger-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
+  .plate-circle-wrap { display: flex; justify-content: center; margin-bottom: var(--space-md); }
+  .plate-circle-container { border-radius: 50%; transition: box-shadow 0.3s; padding: 8px; }
+  .plate-circle-container.glow-healthy { box-shadow: 0 0 24px rgba(16,185,129,0.5), 0 0 48px rgba(16,185,129,0.2); }
+  .plate-circle-container.glow-treat { box-shadow: 0 0 24px rgba(249,115,22,0.5), 0 0 48px rgba(249,115,22,0.2); }
+
+  .plate-section-labels { display: flex; flex-direction: column; gap: var(--space-xs); margin-bottom: var(--space-xs); }
+  .sl-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+  .sl-name { color: var(--color-body); }
+  .sl-pct { font-weight: 600; font-family: var(--font-mono); }
+  .sl-remove-btn {
+    width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--color-hairline);
+    background: var(--color-canvas-soft); color: var(--color-mute); cursor: pointer;
+    font-size: 13px; line-height: 18px; text-align: center; display: inline-flex;
+    align-items: center; justify-content: center; transition: all 0.15s; padding: 0; font-family: inherit;
+    flex-shrink: 0;
   }
-  .clear-day-btn:hover { color: var(--color-error); background: var(--color-error-soft); }
+  .sl-remove-btn:hover { background: var(--color-error-soft); border-color: var(--color-error); color: var(--color-error); }
 
-  /* ── Quick-add chips ── */
-  .chip-section { margin-bottom: var(--space-sm); }
-  .chip-label { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; color: var(--color-mute); letter-spacing: 0.04em; display: block; margin-bottom: var(--space-xxs); }
-  .chip-row { display: flex; flex-wrap: wrap; gap: var(--space-xxs); }
-  .quick-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--color-canvas-soft); border: 1px solid var(--color-hairline);
-    border-radius: var(--radius-pill); padding: 4px 10px; font-size: 13px;
-    color: var(--color-ink); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  /* Removed section pills */
+  .removed-sections-area { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-top: var(--space-xs); margin-bottom: var(--space-sm); min-height: 0; }
+  .removed-pill {
+    font-size: 12px; padding: 3px 10px; border-radius: var(--radius-pill);
+    border: 1px dashed var(--color-hairline); background: var(--color-canvas-soft);
+    color: var(--color-mute); cursor: pointer; transition: all 0.15s; font-family: inherit;
   }
-  .quick-chip:hover { background: var(--color-accent-soft); border-color: var(--color-accent); }
-  .chip-cal { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
+  .removed-pill:hover { border-color: var(--color-accent); color: var(--color-accent-deep); background: var(--color-accent-soft); border-style: solid; }
 
-  /* ── Lookup counter ── */
-  .lookup-counter { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); margin-bottom: var(--space-sm); }
-  .lookup-counter.exhausted { color: var(--color-warning-deep); }
+  /* Remove confirm box */
+  .remove-confirm-area { margin-bottom: var(--space-sm); }
+  .remove-confirm-box { background: var(--color-canvas-soft-2); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); font-size: 13px; color: var(--color-body); display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+  .remove-confirm-label { flex: 1; font-weight: 500; }
 
-  /* ── Cache suggestion ── */
-  .cache-suggestion {
-    background: var(--color-canvas-soft); border: 1px solid var(--color-hairline);
-    border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md);
-    font-size: 14px; color: var(--color-ink);
+  /* Verdict confirm UI */
+  .plate-verdict-row { margin-bottom: var(--space-sm); }
+  .verdict-suggest { font-size: 14px; color: var(--color-body); margin-bottom: var(--space-sm); text-align: center; line-height: 1.5; }
+  .verdict-confirm-btns { display: flex; gap: var(--space-sm); justify-content: center; flex-wrap: wrap; }
+  .verdict-confirmed-row { display: flex; align-items: center; justify-content: center; gap: var(--space-md); padding: var(--space-sm) 0; }
+  .verdict-confirmed-label { font-size: 16px; font-weight: 600; color: var(--color-ink); }
+
+  /* Flex plates status */
+  .flex-status { font-size: 13px; font-weight: 500; padding: 3px 12px; border-radius: var(--radius-full); display: inline-block; margin-top: var(--space-xs); }
+  .flex-status-green { background: #d1fae5; color: #065f46; }
+  .flex-status-yellow { background: #fef3c7; color: #92400e; }
+  .flex-status-red { background: #fee2e2; color: #991b1b; }
+
+  /* Simple secondary grid */
+  .simple-secondary-grid { display: grid; grid-template-columns: 1fr 260px; gap: var(--space-lg); align-items: start; margin-top: var(--space-md); }
+  .simple-main-col { display: flex; flex-direction: column; gap: var(--space-md); }
+
+  /* Habits card */
+  .habit-group { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm) 0; border-bottom: 1px solid var(--color-hairline); }
+  .habit-group:last-child { border-bottom: none; padding-bottom: 0; }
+  .habit-group-label { font-size: 13px; font-weight: 500; color: var(--color-ink); }
+  .habit-btn-row { display: flex; flex-wrap: wrap; gap: var(--space-xxs); }
+  .habit-pill {
+    font-size: 13px; padding: 5px 12px; border-radius: var(--radius-pill);
+    border: 1px solid var(--color-hairline); background: var(--color-canvas-soft);
+    color: var(--color-body); cursor: pointer; transition: all 0.15s; font-family: inherit;
   }
-  .suggestion-actions { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-top: var(--space-sm); }
+  .habit-pill:hover { border-color: var(--color-accent); color: var(--color-accent-deep); }
+  .habit-pill.active { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent-text); font-weight: 600; }
+  .water-counter-row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+  .water-btn { width: 32px; height: 32px; border-radius: var(--radius-full); border: 1px solid var(--color-hairline); background: var(--color-canvas); font-size: 18px; line-height: 1; color: var(--color-ink); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-family: inherit; flex-shrink: 0; }
+  .water-btn:hover { background: var(--color-accent-soft); border-color: var(--color-accent); }
+  .mood-row { display: flex; gap: var(--space-xs); }
+  .mood-btn { font-size: 22px; background: none; border: 2px solid transparent; border-radius: var(--radius-sm); padding: 2px 6px; cursor: pointer; transition: all 0.15s; line-height: 1; }
+  .mood-btn:hover { border-color: var(--color-hairline); transform: scale(1.15); }
+  .mood-btn.active { border-color: var(--color-accent); background: var(--color-accent-soft); transform: scale(1.15); }
 
-  /* ── Star button ── */
-  .meal-star {
-    width: 22px; height: 22px; border-radius: var(--radius-xs);
-    font-size: 13px; display: flex; align-items: center; justify-content: center;
-    color: var(--color-mute); background: none; border: none; cursor: pointer;
-    opacity: 0.4; transition: opacity 0.15s;
-  }
-  .meal-star:hover { opacity: 1; }
-  .meal-star.starred { opacity: 1; }
+  /* Checklist card */
+  .checklist-item { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-hairline); font-size: 14px; color: var(--color-body); cursor: pointer; }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-accent); flex-shrink: 0; }
+  .checklist-item.auto-item { cursor: default; }
+  .checklist-item.auto-item .checklist-label { color: var(--color-mute); font-size: 13px; }
 
-  /* ── Saved meals section ── */
-  .saved-meals-section {}
-  .saved-meals-list { display: flex; flex-direction: column; gap: 2px; }
-  .saved-meal-row { display: flex; align-items: center; gap: var(--space-xs); font-size: 13px; padding: 3px 0; }
-  .saved-meal-name { flex: 1; color: var(--color-body); }
-  .saved-meal-cal { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); }
-  .saved-meal-remove { width: 18px; height: 18px; border-radius: var(--radius-xs); font-size: 14px; line-height: 1; color: var(--color-mute); background: none; border: none; cursor: pointer; transition: color 0.15s; }
-  .saved-meal-remove:hover { color: var(--color-error); }
+  /* Flex plates card */
+  .flex-plates-summary { font-size: 14px; color: var(--color-body); margin-bottom: var(--space-xs); }
+  .flex-plates-icons { display: flex; gap: 4px; margin-top: var(--space-sm); }
+  .flex-icon { font-size: 20px; opacity: 0.2; }
+  .flex-icon.used { opacity: 1; }
+  .flex-icon.avail { opacity: 0.55; }
+  .flex-plates-note { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); margin-top: var(--space-xs); }
 
+  /* Weight card */
+  .weight-form { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; }
+  .weight-input { width: 90px !important; text-align: center; }
+  .weight-trend { margin-top: var(--space-md); display: flex; flex-direction: column; gap: var(--space-xs); }
+  .weight-trend-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--color-body); padding: var(--space-xxs) 0; border-bottom: 1px solid var(--color-hairline); }
+  .weight-trend-row:last-child { border-bottom: none; }
+  .weight-trend-dir { font-size: 16px; }
+
+  /* Detailed mode - meal sections */
+  .det-meal-section { background: var(--color-canvas); border-radius: var(--radius-lg); padding: var(--space-lg); box-shadow: var(--shadow-4); margin-bottom: var(--space-sm); }
+  .det-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+  .det-section-title { font-size: 15px; font-weight: 600; color: var(--color-ink); }
+  .det-section-meta { display: flex; align-items: center; gap: var(--space-sm); }
+  .det-section-total { font-size: 13px; font-family: var(--font-mono); color: var(--color-mute); }
+  .det-section-total.has-food { color: var(--color-accent-deep); }
+  .det-meal-list { display: flex; flex-direction: column; gap: 0; margin-bottom: var(--space-sm); }
+  .det-meal-row { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-hairline); font-size: 14px; }
+  .det-meal-row:last-child { border-bottom: none; }
+  .det-meal-name { flex: 1; color: var(--color-ink); }
+  .det-meal-macros { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
+  .det-meal-cal { font-weight: 600; color: var(--color-body); font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+  .det-meal-del { width: 22px; height: 22px; border-radius: var(--radius-xs); color: var(--color-mute); display: flex; align-items: center; justify-content: center; cursor: pointer; background: none; border: none; font-size: 16px; line-height: 1; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
+  .det-meal-del:hover { color: var(--color-error); background: var(--color-error-soft); }
+  .det-inline-form { background: var(--color-canvas-soft); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-sm); }
+  .det-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-sm); }
+  .det-form-actions { display: flex; gap: var(--space-sm); }
+
+  /* Shared small utilities */
+  .logger-cancel { align-self: center; font-size: 13px; color: var(--color-mute); cursor: pointer; background: none; border: none; padding: 0; transition: color 0.2s; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  .logger-cancel:hover { color: var(--color-ink); }
   .hidden { display: none !important; }
 
+  /* Plate logger header right-side actions */
+  .plate-logger-header-right { display: flex; align-items: center; gap: var(--space-sm); }
+  .plate-info-btn { width: 28px; height: 28px; border-radius: var(--radius-full); border: 1px solid var(--color-hairline); background: var(--color-canvas-soft); color: var(--color-mute); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0; font-family: inherit; flex-shrink: 0; }
+  .plate-info-btn:hover { background: var(--color-accent-soft); border-color: var(--color-accent); }
+
+  /* Harvard info panel */
+  .plate-info-panel { background: var(--color-canvas-soft); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); padding: var(--space-md); margin: var(--space-sm) 0 var(--space-xs); }
+  .plate-info-title { font-size: 13px; font-weight: 700; color: var(--color-ink); margin-bottom: var(--space-sm); }
+  .plate-info-row { display: flex; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-hairline); }
+  .plate-info-icon { font-size: 18px; flex-shrink: 0; line-height: 1.5; }
+  .plate-info-row-label { font-size: 12px; font-weight: 600; color: var(--color-ink); }
+  .plate-info-row-text { font-size: 12px; color: var(--color-body); margin-top: 2px; line-height: 1.4; }
+  .plate-info-tip { font-size: 11px; color: var(--color-mute); margin-top: 2px; font-style: italic; }
+  .plate-info-footer { margin-top: var(--space-sm); padding-top: var(--space-xs); border-top: 1px solid var(--color-hairline); }
+  .plate-info-credit { font-size: 11px; color: var(--color-mute); margin-bottom: var(--space-xs); line-height: 1.5; }
+  .plate-info-link { font-size: 12px; color: var(--color-accent-deep); font-weight: 500; text-decoration: none; }
+  .plate-info-link:hover { text-decoration: underline; }
+
+  /* Post-log nudge toast */
+  .plate-log-nudge { padding: var(--space-sm) var(--space-md); background: var(--color-accent-soft); border: 1px solid var(--color-accent); border-radius: var(--radius-md); font-size: 14px; font-weight: 600; color: var(--color-accent-deep); text-align: center; margin-bottom: var(--space-sm); }
+
+  /* Verdict nudge tips */
+  .verdict-nudge-tip { font-size: 12px; color: var(--color-mute); background: var(--color-canvas-soft); border-radius: var(--radius-sm); padding: 6px var(--space-sm); margin-top: var(--space-xs); line-height: 1.5; text-align: left; }
+
+  /* Harvard education modal */
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+  .plate-edu-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: var(--space-md); animation: overlayIn 0.18s ease; }
+  .plate-edu-overlay.hidden { display: none !important; }
+  .plate-edu-modal { background: var(--color-canvas); border-radius: var(--radius-xl); width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.2); animation: modalIn 0.2s cubic-bezier(0.34,1.2,0.64,1); }
+  .plate-edu-inner { padding: var(--space-xl); display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-md); }
+  .plate-edu-emoji { font-size: 64px; line-height: 1; }
+  .plate-edu-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--color-ink); }
+  .plate-edu-sub { font-size: 14px; color: var(--color-body); line-height: 1.6; }
+  .plate-edu-sections { width: 100%; display: flex; flex-direction: column; gap: var(--space-xs); }
+  .plate-edu-row { display: flex; align-items: flex-start; gap: var(--space-sm); text-align: left; padding: var(--space-sm); background: var(--color-canvas-soft); border-radius: var(--radius-md); border: 1px solid var(--color-hairline); }
+  .plate-edu-icon { font-size: 24px; line-height: 1; flex-shrink: 0; }
+  .plate-edu-row-title { font-size: 13px; font-weight: 700; color: var(--color-ink); }
+  .plate-edu-row-sub { font-size: 12px; color: var(--color-mute); margin-top: 2px; }
+  .plate-edu-note { font-size: 13px; color: var(--color-mute); line-height: 1.6; }
+  .plate-edu-cta { width: 100%; padding: 14px; font-size: 16px; border-radius: var(--radius-pill); }
+
+  /* Responsive */
   @media (max-width: 900px) {
     .dashboard-grid { grid-template-columns: 1fr; }
     .badges-col { order: -1; }
     .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
     .badge-item { flex-direction: column; text-align: center; padding: var(--space-md) var(--space-sm); }
+    .simple-secondary-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 600px) {
     .dashboard-page { padding: var(--space-md) 0 var(--space-3xl); }
+    .plates-slots { grid-template-columns: 1fr; }
     .cal-num { font-size: 32px; }
     .cal-remaining-block { margin-left: 0; }
     .today-date { font-size: 20px; }
     .badges-grid { grid-template-columns: repeat(3, 1fr); }
     .calories-numbers { gap: var(--space-sm); }
+    .det-form-row { grid-template-columns: 1fr 1fr; }
   }
 </style>
 
 <script>
-  const DAILY_LIMIT = 20;
-  const CACHE_MAX = 200;
-  const CACHE_EVICT = 50;
-  const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-  const SAVED_MAX = 20;
-
-  let _rootClickHandler = null;
-
+  // ─────────────────────────────────────
+  // CONSTANTS
+  // ─────────────────────────────────────
   const BADGES_CONFIG = [
     { id: 'week_warrior',   emoji: '🥉', name: 'Week Warrior',   req: '7-day streak',   days: 7 },
     { id: 'monthly_master', emoji: '🥈', name: 'Monthly Master', req: '30-day streak',  days: 30 },
     { id: 'century_club',   emoji: '🥇', name: 'Century Club',   req: '100-day streak', days: 100 },
   ];
-
   const GOAL_LABELS = { lose: 'Lose Weight', maintain: 'Maintain Weight', gain: 'Gain Weight' };
-  const UNITS = ['cup','bowl','tbsp','tsp','piece','serving','slice','oz','g','ml','lb'];
-  const FILLER = new Set(['of','with','and','some','little','bit','piece','pieces','slice','slices']);
-  const NUM_WORDS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,half:0.5,a:1,an:1 };
+  const MEAL_SECTIONS = [
+    { id: 'breakfast', label: '🌅 Breakfast' },
+    { id: 'lunch',     label: '☀️ Lunch' },
+    { id: 'snacks',    label: '🍎 Snacks' },
+    { id: 'dinner',    label: '🌙 Dinner' },
+    { id: 'misc',      label: '🍵 Miscellaneous' },
+  ];
+  const PLATE_MEALS = [
+    { id: 'breakfast', label: '🌅 Breakfast' },
+    { id: 'lunch',     label: '☀️ Lunch' },
+    { id: 'dinner',    label: '🌙 Dinner' },
+  ];
+  const DEFAULT_SECTIONS = [
+    { name: 'Veggies & Fruits', emoji: '🥦', pct: 50, color: '#10b981' },
+    { name: 'Grains & Carbs',   emoji: '🍚', pct: 25, color: '#f59e0b' },
+    { name: 'Protein',          emoji: '🍗', pct: 25, color: '#f97316' },
+  ];
 
+  // ─────────────────────────────────────
+  // UTILITIES
+  // ─────────────────────────────────────
   function todayStr() { return new Date().toISOString().split('T')[0]; }
   function formatDate(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-  // ── Rate limiting ──
-  function getUsage() {
-    try {
-      const raw = JSON.parse(localStorage.getItem('cm_api_usage') || '{}');
-      if (raw.date !== todayStr()) return { date: todayStr(), count: 0 };
-      return raw;
-    } catch { return { date: todayStr(), count: 0 }; }
+  function getWeekKey() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    return monday.toISOString().split('T')[0];
   }
-  function saveUsage(u) { localStorage.setItem('cm_api_usage', JSON.stringify(u)); }
-  function getRemainingLookups() { return Math.max(0, DAILY_LIMIT - getUsage().count); }
-  function incrementUsage() { const u = getUsage(); u.count++; saveUsage(u); }
-  function limitReached() { return getUsage().count >= DAILY_LIMIT; }
+  function isMonday() { return new Date().getDay() === 1; }
 
-  // ── Input sanitization ──
-  function sanitizeInput(raw) {
-    const urlPattern = /https?:\/\/|www\.|<[^>]+>|<script|javascript:|on\w+\s*=/i;
-    let s = String(raw).slice(0, 200);
-    if (urlPattern.test(s)) return null;
-    s = s.replace(/<[^>]*>/g, '').replace(/[<>"'`;]/g, '').trim();
-    return s || null;
+  // ─────────────────────────────────────
+  // STORAGE HELPERS
+  // ─────────────────────────────────────
+  function getSettings() {
+    try { return { waterGoal: 8, flexAllowance: 2, ...JSON.parse(localStorage.getItem('cm_settings') || '{}') }; }
+    catch { return { waterGoal: 8, flexAllowance: 2 }; }
   }
 
-  // ── Offensive content filter ──
-  function isOffensiveInput(raw) {
-    const lower = raw.toLowerCase();
-    // Normalize leet-speak so "sh1t", "f@ck", "sh!t" etc. are caught
-    const norm = lower
-      .replace(/1/g, 'i').replace(/3/g, 'e').replace(/0/g, 'o')
-      .replace(/@/g, 'a').replace(/\$/g, 's').replace(/!/g, 'i');
-
-    // Whole-word terms — word boundaries prevent common food false positives:
-    // grape≠rape, cocktail≠cock, cassava≠ass, skillet≠kill, cucumber≠cum,
-    // cracker≠crack, Bombay≠bomb, method≠meth, shiitake≠shit
-    const wordTerms = [
-      'ass','cock','cum','cunt','dick','piss','shit','fuck','bitch',
-      'slut','whore','prick','twat','wank','bollocks','bugger','bastard',
-      'nigger','nigga','faggot','retard',
-      'porn','nude','sex',
-      'bomb','kill','rape','stab','shoot','murder','suicide','terror',
-      'cocaine','heroin','meth','crack','fentanyl','ecstasy','ketamine',
-      'mdma','lsd','pcp','marijuana','cannabis','weed',
-    ];
-    if (new RegExp(`\\b(${wordTerms.join('|')})\\b`).test(norm)) return true;
-
-    // Substring terms — distinctive enough to have no food false positives
-    const subTerms = [
-      'motherfuck','masturbat','orgasm','erection','hentai',
-      'genocide','massacre','torture','decapitat',
-      'methamphetamine','oxycodone','opioid',
-    ];
-    if (subTerms.some(t => norm.includes(t))) return true;
-
-    // Prompt injection phrases (check original lowercase, not leet-normed)
-    const injectionTerms = [
-      'ignore previous','ignore all previous','system prompt','you are now',
-      'forget instructions','forget all instructions','act as','jailbreak',
-      'new instructions','override instructions','disregard previous',
-      'pretend you are','roleplay as','you are an ai',
-    ];
-    if (injectionTerms.some(t => lower.includes(t))) return true;
-
-    // Gibberish: any token longer than 8 chars with no vowels
-    if (lower.split(/\s+/).some(w => w.length > 8 && !/[aeiou]/.test(w))) return true;
-
-    return false;
-  }
-
-  // ── Normalization ──
-  function normalize(input) {
-    let s = input.toLowerCase();
-    Object.entries(NUM_WORDS).forEach(([w, n]) => {
-      s = s.replace(new RegExp(`\\b${w}\\b`, 'g'), String(n));
-    });
-    s = s.replace(/[^\w\s.]/g, ' ');
-    s = s.split(/\s+/).filter(w => !FILLER.has(w) && w !== '').join(' ');
-    return s.trim();
-  }
-
-  // ── Meal cache ──
-  function getCache() { try { return JSON.parse(localStorage.getItem('cm_meal_cache') || '{}'); } catch { return {}; } }
-  function saveCache(c) { localStorage.setItem('cm_meal_cache', JSON.stringify(c)); }
-
-  function pruneCache(cache) {
-    const now = Date.now();
-    Object.keys(cache).forEach(k => {
-      const v = cache[k];
-      if (typeof v === 'object' && v.cachedAt && now - v.cachedAt > CACHE_TTL_MS) delete cache[k];
-    });
-    const entries = Object.entries(cache).filter(([,v]) => typeof v === 'object');
-    if (entries.length > CACHE_MAX) {
-      entries.sort((a, b) => a[1].cachedAt - b[1].cachedAt);
-      entries.slice(0, CACHE_EVICT).forEach(([k]) => delete cache[k]);
-      Object.keys(cache).forEach(k => {
-        if (typeof cache[k] === 'string' && !cache[cache[k]]) delete cache[k];
-      });
-    }
-    return cache;
-  }
-
-  function resolveCache(cache, key) {
-    const entry = cache[key];
-    if (!entry) return null;
-    if (typeof entry === 'string') return cache[entry] || null;
-    return entry;
-  }
-
-  function cacheSet(normKey, result) {
-    let cache = getCache();
-    cache = pruneCache(cache);
-    cache[normKey] = { name: result.name, calories: result.calories, cachedAt: Date.now() };
-    saveCache(cache);
-  }
-
-  function cacheAlias(aliasKey, mainKey) {
-    const cache = getCache();
-    if (aliasKey !== mainKey) cache[aliasKey] = mainKey;
-    saveCache(cache);
-  }
-
-  // ── Saved meals ──
-  function getSavedMeals() {
-    try {
-      const meals = JSON.parse(localStorage.getItem('cm_saved_meals') || '[]');
-      let dirty = false;
-      meals.forEach(m => { if (!m.id) { m.id = crypto.randomUUID(); dirty = true; } });
-      if (dirty) localStorage.setItem('cm_saved_meals', JSON.stringify(meals));
-      return meals;
-    } catch { return []; }
-  }
-  function saveSavedMeals(m) { localStorage.setItem('cm_saved_meals', JSON.stringify(m)); }
-
-  function starMeal(name, calories) {
-    const saved = getSavedMeals();
-    if (saved.some(m => m.name === name)) return;
-    saved.unshift({ id: crypto.randomUUID(), name, calories });
-    if (saved.length > SAVED_MAX) saved.pop();
-    saveSavedMeals(saved);
-    refreshDashboard();
-  }
-
-  function removeSavedMeal(id) {
-    const saved = getSavedMeals().filter(m => m.id !== id);
-    saveSavedMeals(saved);
-    refreshDashboard();
-  }
-
-  // ── Recent meals ──
-  function getRecentMeals() {
-    const logs = getLogs();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
-    const seen = new Set();
-    const recent = [];
-    const days = Object.keys(logs).sort().reverse();
-    for (const day of days) {
-      if (new Date(day + 'T00:00:00') < cutoff) break;
-      for (const meal of (logs[day] || [])) {
-        if (!seen.has(meal.name)) { seen.add(meal.name); recent.push(meal); }
-        if (recent.length >= 5) return recent;
-      }
-    }
-    return recent;
-  }
-
-  // ── Storage helpers ──
+  // cm_logs — detailed mode
   function getLogs() { try { return JSON.parse(localStorage.getItem('cm_logs') || '{}'); } catch { return {}; } }
-  function saveLogs(l) { localStorage.setItem('cm_logs', JSON.stringify(l)); }
+  function saveLogs(l) { try { localStorage.setItem('cm_logs', JSON.stringify(l)); } catch {} }
   function getTodayMeals() { const day = getLogs()[todayStr()]; return Array.isArray(day) ? day : []; }
   function saveTodayMeals(meals) { const logs = getLogs(); logs[todayStr()] = meals; saveLogs(logs); }
   function totalForDay(meals) { if (!Array.isArray(meals)) return 0; return meals.reduce((s, m) => s + (m.calories || 0), 0); }
-  function getStreak() { try { return JSON.parse(localStorage.getItem('cm_streak') || '{"currentStreak":0,"lastLoggedDate":"","longestStreak":0}'); } catch { return { currentStreak: 0, lastLoggedDate: '', longestStreak: 0 }; } }
+
+  // cm_plates — simple mode
+  function getPlates() { try { return JSON.parse(localStorage.getItem('cm_plates') || '{}'); } catch { return {}; } }
+  function savePlates(p) { try { localStorage.setItem('cm_plates', JSON.stringify(p)); } catch {} }
+  function getTodayPlates() { return getPlates()[todayStr()] || { breakfast: null, lunch: null, dinner: null }; }
+  function saveTodayPlates(plates) { const all = getPlates(); all[todayStr()] = plates; savePlates(all); }
+
+  // cm_habits — simple mode
+  function getHabits() { try { return JSON.parse(localStorage.getItem('cm_habits') || '{}'); } catch { return {}; } }
+  function saveHabits(h) { try { localStorage.setItem('cm_habits', JSON.stringify(h)); } catch {} }
+  function getTodayHabits() { return getHabits()[todayStr()] || { water: 0, sleep: null, activity: null, mood: null, energy: null, fruits: false, salad: false, nuts: false, flexBonusGiven: false }; }
+  function saveTodayHabits(habits) { const all = getHabits(); all[todayStr()] = habits; saveHabits(all); }
+
+  // cm_flex_plates — used = treat plates this week, earned = bonus from activity (0–2)
+  function getFlexPlates() {
+    const weekKey = getWeekKey();
+    let flex;
+    try { flex = JSON.parse(localStorage.getItem('cm_flex_plates') || 'null'); } catch { flex = null; }
+    if (!flex || flex.week !== weekKey) {
+      flex = { week: weekKey, used: 0, earned: 0 };
+      try { localStorage.setItem('cm_flex_plates', JSON.stringify(flex)); } catch {}
+    }
+    return flex;
+  }
+  function saveFlexPlates(f) { try { localStorage.setItem('cm_flex_plates', JSON.stringify(f)); } catch {} }
+
+  // cm_weight_log
+  function getWeightLog() { try { return JSON.parse(localStorage.getItem('cm_weight_log') || '[]'); } catch { return []; } }
+  function saveWeightLog(w) { try { localStorage.setItem('cm_weight_log', JSON.stringify(w)); } catch {} }
+
+  // cm_streak / cm_badges
+  function getStreak() {
+    try { return JSON.parse(localStorage.getItem('cm_streak') || '{"currentStreak":0,"lastLoggedDate":"","longestStreak":0}'); }
+    catch { return { currentStreak: 0, lastLoggedDate: '', longestStreak: 0 }; }
+  }
   function getBadges() { try { return JSON.parse(localStorage.getItem('cm_badges') || '[]'); } catch { return []; } }
 
-  function updateStreak(target) {
+  // ─────────────────────────────────────
+  // STREAK + BADGES
+  // ─────────────────────────────────────
+  function computeAndSaveStreak(isStreakDay) {
     const today = todayStr();
-    const meals = getTodayMeals();
-    const total = totalForDay(meals);
-    const onTrack = meals.length > 0 && total <= target;
     let streak = getStreak();
-    if (onTrack) {
+    if (isStreakDay) {
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       const yStr = yesterday.toISOString().split('T')[0];
       if (streak.lastLoggedDate === yStr) { streak.currentStreak += 1; streak.lastLoggedDate = today; }
@@ -499,595 +623,36 @@ import Layout from '../layouts/Layout.astro';
       const diff = Math.floor((Date.now() - new Date(streak.lastLoggedDate + 'T00:00:00').getTime()) / 86400000);
       if (diff > 1) streak.currentStreak = 0;
     }
-    localStorage.setItem('cm_streak', JSON.stringify(streak));
+    try { localStorage.setItem('cm_streak', JSON.stringify(streak)); } catch {}
     return streak;
+  }
+
+  function updateDetailedStreak(target) {
+    const meals = getTodayMeals();
+    const total = totalForDay(meals);
+    return computeAndSaveStreak(meals.length > 0 && total <= target);
+  }
+
+  function updateSimpleStreak() {
+    const plates = getTodayPlates();
+    const habits = getTodayHabits();
+    const allPlates = !!(plates.breakfast && plates.lunch && plates.dinner);
+    const allHabits = habits.sleep !== null && (habits.water || 0) > 0 && habits.activity !== null;
+    return computeAndSaveStreak(allPlates && allHabits);
   }
 
   function awardBadges(streak) {
     const badges = getBadges();
     BADGES_CONFIG.forEach(b => { if (streak.longestStreak >= b.days && !badges.includes(b.id)) badges.push(b.id); });
-    localStorage.setItem('cm_badges', JSON.stringify(badges));
+    try { localStorage.setItem('cm_badges', JSON.stringify(badges)); } catch {}
     return badges;
   }
 
-  // ── Calories UI ──
-  function updateCaloriesUI(target) {
-    const meals = getTodayMeals();
-    const consumed = totalForDay(meals);
-    const remaining = target - consumed;
-    const pct = Math.min(100, Math.round((consumed / target) * 100));
-    document.getElementById('cal-consumed').textContent = consumed.toLocaleString();
-    document.getElementById('cal-goal').textContent = target.toLocaleString();
-    document.getElementById('cal-remaining').textContent = Math.max(0, remaining).toLocaleString();
-    document.getElementById('cal-percent-text').textContent = `${pct}% of goal`;
-    const fill = document.getElementById('progress-fill');
-    fill.style.width = pct + '%';
-    fill.className = 'progress-fill';
-    document.getElementById('cal-progress').setAttribute('aria-valuenow', String(pct));
-    const statusEl = document.getElementById('status-indicator');
-    if (consumed <= target) { statusEl.textContent = 'On Track ✅'; statusEl.style.color = 'var(--color-accent-deep)'; }
-    else if (consumed <= target + 50) { statusEl.textContent = 'Almost There 🎯'; statusEl.style.color = 'var(--color-warning)'; fill.classList.add('close'); }
-    else { statusEl.textContent = 'Over Budget ⚠️'; statusEl.style.color = 'var(--color-error)'; fill.classList.add('over'); }
-  }
-
-  // ── Quick-add chips ──
-  function buildQuickChips() {
-    const saved = getSavedMeals();
-    const recent = getRecentMeals();
-    const savedNames = new Set(saved.map(m => m.name));
-    const recentOnly = recent.filter(m => !savedNames.has(m.name));
-
-    let html = '';
-    if (saved.length > 0) {
-      html += `<div class="chip-section"><span class="chip-label">Your saved meals</span><div class="chip-row">`;
-      html += saved.map(m => `<button type="button" class="quick-chip" data-name="${escHtml(m.name)}" data-cal="${m.calories}">⭐ ${escHtml(m.name)} <span class="chip-cal">${m.calories} kcal</span></button>`).join('');
-      html += `</div></div>`;
-    }
-    if (recentOnly.length > 0) {
-      html += `<div class="chip-section"><span class="chip-label">Recently logged</span><div class="chip-row">`;
-      html += recentOnly.map(m => `<button type="button" class="quick-chip" data-name="${escHtml(m.name)}" data-cal="${m.calories}">${escHtml(m.name)} <span class="chip-cal">${m.calories} kcal</span></button>`).join('');
-      html += `</div></div>`;
-    }
-    return html;
-  }
-
-  function lookupCounterHtml() {
-    const rem = getRemainingLookups();
-    if (rem === 0) return `<p class="lookup-counter exhausted">Enter meals manually today — AI lookups reset tomorrow 🔄</p>`;
-    return `<p class="lookup-counter">${rem}/${DAILY_LIMIT} AI lookups remaining today</p>`;
-  }
-
-  // ── Meal List Card ──
-  function renderMeals() {
-    const meals = getTodayMeals();
-    const total = totalForDay(meals);
-    const saved = getSavedMeals();
-    const savedByName = new Map(saved.map(m => [m.name, m]));
-    const root = document.getElementById('meal-sections-root');
-
-    root.innerHTML = `
-      <div class="card-lg" id="meals-card">
-        <div class="meals-header">
-          <h2 class="eyebrow" style="font-size:13px">Today's Meals</h2>
-          <div style="display:flex;align-items:center;gap:var(--space-sm)">
-            <span class="meals-total${total > 0 ? ' has-food' : ''}">${total} kcal</span>
-            ${meals.length > 0 ? `<div id="clear-day-wrap"><button class="clear-day-btn" id="clear-day-btn" title="Clear all meals for today">Clear day</button></div>` : ''}
-          </div>
-        </div>
-        <div class="divider" style="margin:var(--space-md) 0 0"></div>
-
-        <div class="meals-list" id="meals-list">
-          ${meals.length > 0
-            ? meals.map((m, i) => {
-                const se = savedByName.get(m.name);
-                return `
-                <div class="meal-item">
-                  <span class="meal-item-name">${escHtml(m.name)}</span>
-                  <span class="meal-item-cal">${m.calories} kcal</span>
-                  <div class="meal-item-actions" id="del-actions-${i}">
-                    <button class="meal-star${se ? ' starred' : ''}" data-name="${escHtml(m.name)}" data-cal="${m.calories}" data-saved-id="${se ? escHtml(se.id) : ''}" aria-label="${se ? 'Unsave meal' : 'Save meal'}" title="${se ? 'Unsave meal' : 'Save meal'}">${se ? '⭐' : '☆'}</button>
-                    <button class="meal-item-del" data-index="${i}" aria-label="Remove ${escHtml(m.name)}" title="Remove">×</button>
-                  </div>
-                </div>`;
-              }).join('')
-            : `<p class="meals-empty">Nothing logged yet. Add your first meal below!</p>`
-          }
-        </div>
-
-        <div class="section-logger hidden" id="meal-logger">
-          ${buildQuickChips()}
-          ${lookupCounterHtml()}
-          <p class="form-label">What did you eat?</p>
-          <input class="form-input" id="logger-input" type="text" placeholder="e.g. oatmeal with banana and a coffee" autocomplete="off" maxlength="200" />
-          <p class="input-trim-notice hidden" id="input-trim-notice" style="font-size:12px;color:var(--color-warning-deep)">Input trimmed to 200 characters</p>
-          <button type="button" class="btn-accent" style="width:100%" id="lookup-btn">🔍 Look up calories</button>
-          <div class="logger-status hidden" id="logger-status"></div>
-          <div class="logger-results hidden" id="logger-results"></div>
-          <div class="manual-entry hidden" id="manual-entry">
-            <p class="form-hint" id="manual-hint">Enter meal details manually:</p>
-            <input type="text" class="form-input" id="manual-name" placeholder="Meal name" maxlength="200" />
-            <input type="number" class="form-input" id="manual-cal" placeholder="Calories (kcal)" min="1" />
-            <button type="button" class="btn-accent" style="width:100%" id="manual-add-btn">Add</button>
-          </div>
-          <button type="button" class="logger-cancel" id="logger-cancel-btn">Cancel</button>
-        </div>
-
-        ${saved.length > 0 ? `
-        <div class="saved-meals-section" id="saved-meals-section">
-          <div class="divider" style="margin:var(--space-md) 0"></div>
-          <p class="eyebrow" style="font-size:11px;margin-bottom:var(--space-xs)">Saved Meals</p>
-          <div class="saved-meals-list">
-            ${saved.map(m => `
-              <div class="saved-meal-row">
-                <span class="saved-meal-name">${escHtml(m.name)}</span>
-                <span class="saved-meal-cal">${m.calories} kcal</span>
-                <button class="saved-meal-remove" data-id="${escHtml(m.id)}" aria-label="Remove ${escHtml(m.name)} from saved">×</button>
-              </div>`).join('')}
-          </div>
-        </div>` : ''}
-
-        <button type="button" class="btn-secondary" style="width:100%;margin-top:var(--space-md)" id="log-meal-btn">+ Log a Meal</button>
-      </div>
-    `;
-
-    document.getElementById('log-meal-btn').addEventListener('click', openLogger);
-    document.getElementById('logger-cancel-btn').addEventListener('click', closeLogger);
-    document.getElementById('lookup-btn').addEventListener('click', runLookup);
-
-
-    const loggerInput = document.getElementById('logger-input');
-    loggerInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runLookup(); } });
-    loggerInput.addEventListener('input', () => {
-      const notice = document.getElementById('input-trim-notice');
-      if (loggerInput.value.length >= 200) notice.classList.remove('hidden');
-      else notice.classList.add('hidden');
-    });
-
-    document.getElementById('manual-add-btn').addEventListener('click', () => {
-      const name = sanitizeInput(document.getElementById('manual-name').value.trim());
-      const cal = parseInt(document.getElementById('manual-cal').value);
-      if (!name || !cal || cal < 1) return;
-      addMeal(name, cal);
-    });
-
-    if (_rootClickHandler) root.removeEventListener('click', _rootClickHandler);
-    _rootClickHandler = e => {
-      const chip = e.target.closest('.quick-chip');
-      const star = e.target.closest('.meal-star');
-      const del = e.target.closest('.meal-item-del');
-      const yes = e.target.closest('.del-yes');
-      const no  = e.target.closest('.del-no');
-      const rmSaved = e.target.closest('.saved-meal-remove');
-      const clearDay = e.target.closest('.clear-day-btn');
-      const clearYes = e.target.closest('.clear-day-yes');
-      const clearNo  = e.target.closest('.clear-day-no');
-
-      if (clearDay) {
-        const wrap = document.getElementById('clear-day-wrap');
-        wrap.innerHTML = `
-          <span class="del-confirm-text">Clear all?</span>
-          <button class="clear-day-yes del-yes">Yes</button>
-          <button class="clear-day-no del-no">No</button>
-        `;
-      } else if (clearYes) {
-        saveTodayMeals([]);
-        refreshDashboard();
-      } else if (clearNo) {
-        const wrap = document.getElementById('clear-day-wrap');
-        wrap.innerHTML = `<button class="clear-day-btn" title="Clear all meals for today">Clear day</button>`;
-      } else if (chip) {
-        chip.disabled = true;
-        chip.style.opacity = '0.5';
-        chip.style.pointerEvents = 'none';
-        addMeal(chip.dataset.name, parseInt(chip.dataset.cal));
-        setTimeout(() => { try { chip.disabled = false; chip.style.opacity = ''; chip.style.pointerEvents = ''; } catch {} }, 1000);
-      } else if (star) {
-        if (star.classList.contains('starred')) {
-          removeSavedMeal(star.dataset.savedId);
-        } else {
-          starMeal(star.dataset.name, parseInt(star.dataset.cal));
-        }
-      } else if (del) {
-        const idx = del.dataset.index;
-        const actionsEl = document.getElementById(`del-actions-${idx}`);
-        actionsEl.innerHTML = `
-          <span class="del-confirm-text">Sure?</span>
-          <button class="del-yes" data-index="${idx}">Yes</button>
-          <button class="del-no" data-index="${idx}">No</button>
-        `;
-      } else if (yes) {
-        const idx = parseInt(yes.dataset.index);
-        const meals = getTodayMeals();
-        meals.splice(idx, 1);
-        saveTodayMeals(meals);
-        refreshDashboard();
-      } else if (no) {
-        refreshDashboard();
-      } else if (rmSaved) {
-        removeSavedMeal(rmSaved.dataset.id);
-      }
-    };
-    root.addEventListener('click', _rootClickHandler);
-  }
-
-  function openLogger() {
-    const logger = document.getElementById('meal-logger');
-    const addBtn = document.getElementById('log-meal-btn');
-    if (!logger) return;
-    logger.classList.remove('hidden');
-    addBtn?.classList.add('hidden');
-    const inp = document.getElementById('logger-input');
-    if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
-    document.getElementById('logger-status').classList.add('hidden');
-    document.getElementById('logger-results').classList.add('hidden');
-    document.getElementById('manual-entry').classList.add('hidden');
-  }
-
-  function closeLogger() {
-    document.getElementById('meal-logger')?.classList.add('hidden');
-    document.getElementById('log-meal-btn')?.classList.remove('hidden');
-  }
-
-  function showManual(prefillName, hint) {
-    const manualEl = document.getElementById('manual-entry');
-    manualEl.classList.remove('hidden');
-    if (hint) document.getElementById('manual-hint').textContent = hint;
-    if (prefillName) document.getElementById('manual-name').value = prefillName;
-  }
-
-  // ── Cache lookup steps ──
-  function cacheStepExact(normInput) {
-    const cache = getCache();
-    return resolveCache(cache, normInput);
-  }
-
-  function cacheStepQuantity(normInput) {
-    const parts = normInput.split(/\s+/);
-    const qty = parseFloat(parts[0]);
-    if (!qty || isNaN(qty) || parts.length < 2) return null;
-    const rest = parts.slice(1).join(' ');
-    const cache = getCache();
-    const hit = resolveCache(cache, rest);
-    if (!hit) return null;
-    return { hit, rest, qty, scaledCal: Math.round(hit.calories * qty) };
-  }
-
-  function cacheStepSplit(normInput) {
-    const separators = /\s+(?:and|&|\+)\s+/;
-    const parts = normInput.split(separators).map(p => p.trim()).filter(Boolean);
-    if (parts.length < 2) return null;
-    const cache = getCache();
-    const found = [], missing = [];
-    for (const part of parts) {
-      let hit = resolveCache(cache, part);
-      let qty = 1;
-      if (!hit) {
-        const subParts = part.split(/\s+/);
-        const q = parseFloat(subParts[0]);
-        if (!isNaN(q) && q > 0 && subParts.length > 1) {
-          const rest = subParts.slice(1).join(' ');
-          hit = resolveCache(cache, rest);
-          if (hit) qty = q;
-        }
-      }
-      if (hit) found.push({ part, hit, qty, scaledCal: Math.round(hit.calories * qty) });
-      else missing.push(part);
-    }
-    return { found, missing, parts };
-  }
-
-  function cacheStepPartial(normInput) {
-    const words = normInput.split(/\s+/).filter(w => !UNITS.includes(w) && isNaN(parseFloat(w)));
-    if (!words.length) return null;
-    const core = words.reduce((a, b) => b.length > a.length ? b : a, '');
-    const cache = getCache();
-    let best = null, bestTime = 0;
-    for (const [k, v] of Object.entries(cache)) {
-      if (typeof v === 'object' && k.includes(core) && v.cachedAt > bestTime) {
-        best = v; bestTime = v.cachedAt;
-      }
-    }
-    return best ? { hit: best, core } : null;
-  }
-
-  // ── Main lookup flow ──
-  async function runLookup() {
-    const inp = document.getElementById('logger-input');
-    const rawQuery = inp?.value.trim();
-    if (!rawQuery) return;
-
-    const sanitized = sanitizeInput(rawQuery);
-    if (!sanitized) {
-      showInlineMessage('Please enter a food or meal description', 'error');
-      return;
-    }
-
-    if (isOffensiveInput(sanitized)) {
-      console.warn('[Filter] Blocked input:', sanitized);
-      showInlineMessage('Please keep meal descriptions food-related 🥗', 'error');
-      if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
-      return;
-    }
-
-    const statusEl = document.getElementById('logger-status');
-    const resultsEl = document.getElementById('logger-results');
-    const manualEl = document.getElementById('manual-entry');
-
-    statusEl.classList.add('hidden');
-    resultsEl.classList.add('hidden');
-    manualEl.classList.add('hidden');
-
-    const normInput = normalize(sanitized);
-
-    // Step 1: exact
-    const exact = cacheStepExact(normInput);
-    if (exact) {
-      showCacheResult(exact.name, exact.calories, 'cache');
-      return;
-    }
-
-    // Step 2: quantity scaling
-    const quantityMatch = cacheStepQuantity(normInput);
-    if (quantityMatch) {
-      showQuantitySuggestion(quantityMatch, normInput, sanitized);
-      return;
-    }
-
-    // Step 3: multi-item split
-    const splitMatch = cacheStepSplit(normInput);
-    if (splitMatch && splitMatch.found.length > 0) {
-      showSplitSuggestion(splitMatch, sanitized);
-      return;
-    }
-
-    // Step 4: partial word
-    const partial = cacheStepPartial(normInput);
-    if (partial) {
-      showPartialSuggestion(partial, sanitized);
-      return;
-    }
-
-    // Step 5: API
-    if (limitReached()) {
-      showManual(sanitized, "You've used your AI lookups for today — no worries, just enter manually below!");
-      return;
-    }
-
-    await callGroqAPI(sanitized, normInput);
-  }
-
-  function showInlineMessage(msg, type) {
-    const el = document.getElementById('logger-status');
-    el.innerHTML = `<span style="color:var(--color-${type === 'error' ? 'error' : 'mute'})">${escHtml(msg)}</span>`;
-    el.classList.remove('hidden');
-  }
-
-  function showCacheResult(name, calories, source) {
-    addMeal(name, calories);
-  }
-
-  function showQuantitySuggestion({ hit, qty, scaledCal }, normInput, originalQuery) {
-    const resultsEl = document.getElementById('logger-results');
-    resultsEl.innerHTML = `
-      <div class="cache-suggestion">
-        <p>${escHtml(hit.name)} × ${qty} — ${scaledCal} kcal?</p>
-        <div class="suggestion-actions">
-          <button class="btn-accent btn-sm" id="qty-yes">✓ Yes, add it</button>
-          <button class="btn-secondary btn-sm" id="qty-no">✗ No, search instead</button>
-        </div>
-      </div>
-    `;
-    resultsEl.classList.remove('hidden');
-    document.getElementById('qty-yes').addEventListener('click', () => {
-      addMeal(`${hit.name} ×${qty}`, scaledCal);
-    });
-    document.getElementById('qty-no').addEventListener('click', async () => {
-      resultsEl.classList.add('hidden');
-      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
-      await callGroqAPI(originalQuery, normalize(originalQuery));
-    });
-  }
-
-  function showSplitSuggestion({ found, missing }, originalQuery) {
-    const resultsEl = document.getElementById('logger-results');
-    const totalFound = found.reduce((s, f) => s + f.scaledCal, 0);
-    let html = `<div class="cache-suggestion"><p style="font-weight:600;margin-bottom:var(--space-xs)">Found in your history:</p>`;
-    found.forEach(f => {
-      const label = f.qty > 1 ? `${escHtml(f.hit.name)} ×${f.qty}` : escHtml(f.hit.name);
-      html += `<p>✓ ${label} — ${f.scaledCal} kcal</p>`;
-    });
-    if (missing.length > 0) {
-      html += `<p style="color:var(--color-mute);font-size:12px">Still searching: ${missing.map(escHtml).join(', ')}</p>`;
-    }
-    html += `<p style="font-weight:600;margin-top:var(--space-xs)">Total: ${totalFound} kcal</p>`;
-    html += `<div class="suggestion-actions">`;
-    if (missing.length === 0) {
-      html += `<button class="btn-accent btn-sm" id="split-all">Add all</button>`;
-      html += `<button class="btn-secondary btn-sm" id="split-pick">Pick individually</button>`;
-    }
-    html += `<button class="btn-secondary btn-sm" id="split-search">Search instead</button>`;
-    html += `</div></div>`;
-    resultsEl.innerHTML = html;
-    resultsEl.classList.remove('hidden');
-
-    document.getElementById('split-all')?.addEventListener('click', () => {
-      found.forEach(f => {
-        const name = f.qty > 1 ? `${f.hit.name} ×${f.qty}` : f.hit.name;
-        addMeal(name, f.scaledCal);
-      });
-    });
-    document.getElementById('split-pick')?.addEventListener('click', () => {
-      resultsEl.innerHTML = found.map((f, i) => {
-        const label = f.qty > 1 ? `${escHtml(f.hit.name)} ×${f.qty}` : escHtml(f.hit.name);
-        return `
-        <div class="cache-suggestion" style="margin-bottom:var(--space-xs)">
-          <p>${label} — ${f.scaledCal} kcal</p>
-          <div class="suggestion-actions">
-            <button class="btn-accent btn-sm split-item-yes" data-idx="${i}">✓ Add</button>
-            <button class="btn-secondary btn-sm split-item-no" data-idx="${i}">✗ Skip</button>
-          </div>
-        </div>`;
-      }).join('');
-      resultsEl.querySelectorAll('.split-item-yes').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const f = found[parseInt(btn.dataset.idx)];
-          const name = f.qty > 1 ? `${f.hit.name} ×${f.qty}` : f.hit.name;
-          addMeal(name, f.scaledCal);
-          btn.closest('.cache-suggestion').remove();
-        });
-      });
-      resultsEl.querySelectorAll('.split-item-no').forEach(btn => {
-        btn.addEventListener('click', () => btn.closest('.cache-suggestion').remove());
-      });
-    });
-    document.getElementById('split-search')?.addEventListener('click', async () => {
-      resultsEl.classList.add('hidden');
-      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
-      await callGroqAPI(originalQuery, normalize(originalQuery));
-    });
-  }
-
-  function showPartialSuggestion({ hit, core }, originalQuery) {
-    const resultsEl = document.getElementById('logger-results');
-    resultsEl.innerHTML = `
-      <div class="cache-suggestion">
-        <p>Did you mean <strong>${escHtml(hit.name)}</strong> (${hit.calories} kcal)?</p>
-        <div class="suggestion-actions">
-          <button class="btn-accent btn-sm" id="partial-yes">✓ Yes</button>
-          <button class="btn-secondary btn-sm" id="partial-no">✗ No, search</button>
-        </div>
-      </div>
-    `;
-    resultsEl.classList.remove('hidden');
-    document.getElementById('partial-yes').addEventListener('click', () => addMeal(hit.name, hit.calories));
-    document.getElementById('partial-no').addEventListener('click', async () => {
-      resultsEl.classList.add('hidden');
-      if (limitReached()) { showManual(originalQuery, "You've used your AI lookups for today — no worries, just enter manually below!"); return; }
-      await callGroqAPI(originalQuery, normalize(originalQuery));
-    });
-  }
-
-  async function callGroqAPI(sanitizedQuery, normInput) {
-    const statusEl = document.getElementById('logger-status');
-    const resultsEl = document.getElementById('logger-results');
-    statusEl.innerHTML = '<span class="spinner"></span> Estimating calories with AI…';
-    statusEl.classList.remove('hidden');
-    resultsEl.classList.add('hidden');
-
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.PUBLIC_GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
-          messages: [
-            { role: 'system', content: 'You are a nutrition expert. Only respond about food and calories. If asked about anything else, respond with: {"error": "not food"}. Always return valid JSON only. Format: {"foods": [{"name": "food name", "calories": number, "portion": "portion description"}], "total_calories": number, "confidence": "high/medium/low"}' },
-            { role: 'user', content: `Food description: """${sanitizedQuery}"""` },
-          ],
-          temperature: 0.1,
-          max_tokens: 500,
-        }),
-      });
-
-      if (res.status === 429) {
-        statusEl.classList.add('hidden');
-        showManual(sanitizedQuery, 'Our AI estimator is busy right now. Please try again in a minute or enter calories manually.');
-        return;
-      }
-      if (!res.ok) { console.error('[meal-lookup]', res.status); throw new Error(); }
-
-      const data = await res.json();
-      const rawText = data?.choices?.[0]?.message?.content ?? '';
-      const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-      const parsed = JSON.parse(cleaned);
-
-      if (parsed.error || !parsed.foods?.length) throw new Error('not food');
-
-      incrementUsage();
-      statusEl.classList.add('hidden');
-
-      // Cache each individual ingredient for future partial/direct lookups
-      parsed.foods.forEach(food => {
-        const normFoodName = normalize(food.name);
-        cacheSet(normFoodName, { name: food.name, calories: Math.round(food.calories) });
-      });
-      // Cache the original query with combined total so future exact lookups skip the API
-      cacheSet(normInput, { name: sanitizedQuery, calories: Math.round(parsed.total_calories) });
-
-      showResults(parsed, sanitizedQuery);
-    } catch (err) {
-      console.error('[Groq error]', err);
-      statusEl.classList.add('hidden');
-      showManual(sanitizedQuery, "Couldn't reach estimator. Enter manually:");
-    }
-  }
-
-  function showResults(result, originalQuery) {
-    const resultsEl = document.getElementById('logger-results');
-    const lowConf = result.confidence === 'low';
-    let currentTotal = Math.round(result.total_calories);
-
-    const breakdownRows = result.foods.map(food => `
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid var(--color-hairline)">
-        <span style="color:var(--color-body)">${escHtml(food.name)}</span>
-        <span style="font-family:var(--font-mono);color:var(--color-mute)">${Math.round(food.calories)} kcal</span>
-      </div>
-    `).join('');
-
-    resultsEl.innerHTML = `
-      ${lowConf ? '<p class="confidence-warning">⚠️ Estimate may vary — use Edit total to adjust</p>' : ''}
-      <div class="result-food-item" style="flex-direction:column;align-items:stretch;gap:var(--space-xs)">
-        <p style="font-weight:600;font-size:14px;margin-bottom:var(--space-xxs)">${escHtml(originalQuery)}</p>
-        <div>${breakdownRows}</div>
-      </div>
-      <div class="results-total-row">
-        <span>Total: <strong class="results-total-num">${currentTotal} kcal</strong></span>
-        <div style="display:flex;gap:var(--space-xs)">
-          <button type="button" class="btn-secondary btn-sm" id="edit-total-btn">Edit total</button>
-          <button type="button" class="btn-accent btn-sm" id="add-to-log-btn">Add to log</button>
-        </div>
-      </div>
-      <input type="number" class="form-input hidden" id="total-cal-edit" value="${currentTotal}" min="0" style="margin-top:var(--space-xs)" />
-    `;
-    resultsEl.classList.remove('hidden');
-
-    const totalNumEl = resultsEl.querySelector('.results-total-num');
-    const editInput = document.getElementById('total-cal-edit');
-
-    document.getElementById('edit-total-btn').addEventListener('click', () => {
-      editInput.classList.toggle('hidden');
-      if (!editInput.classList.contains('hidden')) { editInput.focus(); editInput.select(); }
-    });
-
-    editInput.addEventListener('input', () => {
-      currentTotal = Math.round(parseFloat(editInput.value) || 0);
-      totalNumEl.textContent = currentTotal + ' kcal';
-    });
-
-    document.getElementById('add-to-log-btn').addEventListener('click', () => {
-      addMeal(originalQuery, currentTotal);
-    });
-  }
-
-  function addMealSilent(name, calories) {
-    const meals = getTodayMeals();
-    meals.push({ name, calories });
-    saveTodayMeals(meals);
-  }
-
-  function addMeal(name, calories) {
-    addMealSilent(name, calories);
-    closeLogger();
-    refreshDashboard();
-  }
-
-  // ── Badges ──
-  function renderBadges() {
+  function renderBadges(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
     const earned = getBadges();
-    document.getElementById('badges-grid').innerHTML = BADGES_CONFIG.map(b => `
+    el.innerHTML = BADGES_CONFIG.map(b => `
       <div class="badge-item ${earned.includes(b.id) ? 'earned' : 'locked'}">
         <span class="badge-emoji">${earned.includes(b.id) ? b.emoji : '🔒'}</span>
         <div class="badge-info">
@@ -1098,33 +663,932 @@ import Layout from '../layouts/Layout.astro';
     `).join('');
   }
 
-  function refreshDashboard() {
-    const target = parseInt(localStorage.getItem('cm_target') || localStorage.getItem('cm_tdee') || '0');
-    updateCaloriesUI(target);
-    renderMeals();
-    const streak = updateStreak(target);
-    awardBadges(streak);
-    renderBadges();
-    document.getElementById('mini-streak-count').textContent = String(streak.currentStreak);
+  function updateStreakMini(streak) {
+    const el = document.getElementById('mini-streak-count');
+    if (el) el.textContent = String(streak.currentStreak);
   }
 
-  // ── Init ──
+  function refreshStreakAndBadges(mode) {
+    const target = parseInt(localStorage.getItem('cm_target') || localStorage.getItem('cm_tdee') || '0');
+    const streak = mode === 'simple' ? updateSimpleStreak() : updateDetailedStreak(target);
+    awardBadges(streak);
+    updateStreakMini(streak);
+    renderBadges(mode === 'simple' ? 'badges-grid-simple' : 'badges-grid-detailed');
+  }
+
+  // ─────────────────────────────────────
+  // PLATE CIRCLE — STATE
+  // ─────────────────────────────────────
+  let plateSections = DEFAULT_SECTIONS.map(s => ({ ...s })); // active sections on the circle
+  let removedSections = []; // sections the user removed from the circle
+  let pendingRemoveSection = null; // index in plateSections awaiting removal confirmation
+  let currentPlateMeal = null;
+  let verdictConfirmed = null; // null | 'healthy' | 'treat'
+
+  // ─────────────────────────────────────
+  // PLATE CIRCLE — VERDICT LOGIC
+  // ─────────────────────────────────────
+  function getSuggestedVerdict() {
+    // 2-section rule: if either section dominates beyond 65%
+    if (plateSections.length === 2) {
+      return Math.max(...plateSections.map(s => s.pct)) > 65 ? 'treat' : 'healthy';
+    }
+    const grainsS = plateSections.find(s => s.name === 'Grains & Carbs');
+    const grains = grainsS ? grainsS.pct : 0;
+    return grains > 50 ? 'treat' : 'healthy';
+  }
+
+  function getNudgeTips() {
+    const tips = [];
+    const veggiesS = plateSections.find(s => s.name === 'Veggies & Fruits');
+    const proteinS = plateSections.find(s => s.name === 'Protein');
+    const veggiesPct = veggiesS ? veggiesS.pct : 0;
+    const proteinPct = proteinS ? proteinS.pct : 0;
+    if (veggiesPct < 20) tips.push("💡 Try adding some colour to your next plate 🥦 Even a small salad counts!");
+    if (proteinPct < 10) tips.push("💡 Try adding a protein source next time 💪 Eggs, beans or chicken work great");
+    return tips;
+  }
+
+  function renderVerdictUI() {
+    const row = document.getElementById('plate-verdict-row');
+    const logBtn = document.getElementById('log-plate-btn');
+    if (!row) return;
+
+    if (verdictConfirmed === null) {
+      const suggested = getSuggestedVerdict();
+      const nudges = getNudgeTips();
+      const nudgeHtml = nudges.map(t => `<p class="verdict-nudge-tip">${t}</p>`).join('');
+
+      if (suggested === 'treat') {
+        row.innerHTML = `
+          <p class="verdict-suggest"><strong>This plate is quite carb-heavy 🍚</strong><br>Harvard recommends grains as just ¼ of your plate for best results.<br><br>Was this a treat meal?</p>
+          <div class="verdict-confirm-btns">
+            <button class="habit-pill" data-confirm="healthy">🟢 Actually Healthy</button>
+            <button class="habit-pill active" data-confirm="treat">🔵 Yes, Treat</button>
+          </div>
+          ${nudgeHtml}`;
+      } else {
+        row.innerHTML = `
+          <p class="verdict-suggest"><strong>This looks like a Healthy Plate 🟢</strong><br>Grains are well balanced.<br><br>Does that sound right?</p>
+          <div class="verdict-confirm-btns">
+            <button class="habit-pill active" data-confirm="healthy">✅ Yes, Healthy</button>
+            <button class="habit-pill" data-confirm="treat">🔵 Actually a Treat</button>
+          </div>
+          ${nudgeHtml}`;
+      }
+      if (logBtn) logBtn.classList.add('hidden');
+
+      row.querySelectorAll('[data-confirm]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          verdictConfirmed = (btn as HTMLElement).dataset.confirm;
+          renderVerdictUI();
+        });
+      });
+    } else {
+      const label = verdictConfirmed === 'treat' ? 'Treat Plate 🔵' : 'Healthy Plate 🟢';
+      row.innerHTML = `
+        <div class="verdict-confirmed-row">
+          <span class="verdict-confirmed-label">${label}</span>
+          <button class="logger-cancel" id="change-verdict-btn">Change</button>
+        </div>`;
+      document.getElementById('change-verdict-btn')?.addEventListener('click', () => {
+        verdictConfirmed = null;
+        renderVerdictUI();
+      });
+      if (logBtn) logBtn.classList.remove('hidden');
+    }
+  }
+
+  // ─────────────────────────────────────
+  // PLATE CIRCLE — SVG RENDERING
+  // ─────────────────────────────────────
+  function polarToXY(angleDeg, r) {
+    const rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: +(100 + r * Math.cos(rad)).toFixed(2), y: +(100 + r * Math.sin(rad)).toFixed(2) };
+  }
+
+  function donutArcPath(startPct, endPct, outerR, innerR) {
+    const s = startPct * 3.6, e = endPct * 3.6;
+    const os = polarToXY(s, outerR), oe = polarToXY(e, outerR);
+    const ie = polarToXY(e, innerR), is_ = polarToXY(s, innerR);
+    const lg = (endPct - startPct) > 50 ? 1 : 0;
+    return `M ${os.x} ${os.y} A ${outerR} ${outerR} 0 ${lg} 1 ${oe.x} ${oe.y} L ${ie.x} ${ie.y} A ${innerR} ${innerR} 0 ${lg} 0 ${is_.x} ${is_.y} Z`;
+  }
+
+  function renderPlateSVG() {
+    const svg = document.getElementById('plate-svg');
+    if (!svg) return;
+    const outerR = 82, innerR = 38;
+    let cum = 0, paths = '', labels = '', handles = '';
+    const boundaries = [];
+
+    for (let i = 0; i < plateSections.length; i++) {
+      const s = plateSections[i];
+      const start = cum, end = cum + s.pct;
+      if (s.pct > 0) {
+        paths += `<path d="${donutArcPath(start, end, outerR, innerR)}" fill="${s.color}" opacity="0.88" stroke="var(--color-canvas)" stroke-width="1.5" />`;
+      }
+      if (s.pct > 7) {
+        const mid = polarToXY(((start + end) / 2) * 3.6, (outerR + innerR) / 2);
+        labels += `<text x="${mid.x}" y="${mid.y}" text-anchor="middle" dominant-baseline="middle" font-size="15" style="pointer-events:none;user-select:none">${s.emoji}</text>`;
+      }
+      cum = end;
+      if (i < plateSections.length - 1) boundaries.push(cum);
+    }
+
+    for (let i = 0; i < boundaries.length; i++) {
+      const pos = polarToXY(boundaries[i] * 3.6, outerR);
+      handles += `<circle class="ph" data-i="${i}" cx="${pos.x}" cy="${pos.y}" r="20" fill="rgba(0,0,0,0)" stroke="none" pointer-events="all" style="cursor:grab;touch-action:none" /><circle cx="${pos.x}" cy="${pos.y}" r="9" fill="white" stroke="#94a3b8" stroke-width="2.5" style="pointer-events:none;touch-action:none" />`;
+    }
+
+    // Harvard target boundary markers (dotted lines at ideal 50% and 75% positions)
+    const HARVARD_BOUNDS = [50, 75];
+    let targetMarkers = '';
+    HARVARD_BOUNDS.forEach(t => {
+      const innerPt = polarToXY(t * 3.6, innerR + 2);
+      const outerPt = polarToXY(t * 3.6, outerR + 5);
+      targetMarkers += `<line x1="${innerPt.x}" y1="${innerPt.y}" x2="${outerPt.x}" y2="${outerPt.y}" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-dasharray="3,2" pointer-events="none" />`;
+    });
+
+    svg.innerHTML = paths + labels + targetMarkers + handles;
+    svg.querySelectorAll('.ph').forEach(h => {
+      h.addEventListener('mousedown', startPlateDrag);
+      h.addEventListener('touchstart', startPlateDrag, { passive: false });
+    });
+
+    // Glow: Grains & Carbs > 50% → warning orange, else green
+    const grainsGlowS = plateSections.find(s => s.name === 'Grains & Carbs');
+    const grainsPct = grainsGlowS ? grainsGlowS.pct : 0;
+    const isTreatHint = grainsPct > 50;
+    const cont = document.getElementById('plate-circle-container');
+    if (cont) cont.className = 'plate-circle-container ' + (isTreatHint ? 'glow-treat' : 'glow-healthy');
+
+    // Section labels with × remove button (hidden when only 2 sections remain)
+    const canRemove = plateSections.length > 2;
+    const ll = document.getElementById('plate-section-labels');
+    if (ll) {
+      ll.innerHTML = plateSections.map((s, i) => `
+        <div class="sl-row">
+          <span class="sl-name">${s.emoji} ${s.name}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="sl-pct" style="color:${s.color}">${Math.round(s.pct)}%</span>
+            ${canRemove ? `<button class="sl-remove-btn" data-remove-idx="${i}" title="Remove ${s.name}">×</button>` : ''}
+          </div>
+        </div>`).join('');
+
+      ll.querySelectorAll('.sl-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt((btn as HTMLElement).dataset.removeIdx);
+          pendingRemoveSection = pendingRemoveSection === idx ? null : idx;
+          renderConfirmArea();
+        });
+      });
+    }
+
+    // Removed section re-add pills
+    const ra = document.getElementById('removed-sections-area');
+    if (ra) {
+      if (removedSections.length > 0) {
+        ra.innerHTML = removedSections.map((s, i) =>
+          `<button class="removed-pill" data-readd-idx="${i}">+ ${s.emoji} ${s.name}</button>`
+        ).join('');
+        ra.querySelectorAll('.removed-pill').forEach(btn => {
+          btn.addEventListener('click', () => reAddSection(parseInt((btn as HTMLElement).dataset.readdIdx)));
+        });
+      } else {
+        ra.innerHTML = '';
+      }
+    }
+
+    renderConfirmArea();
+    if (verdictConfirmed === null) renderVerdictUI();
+  }
+
+  function renderConfirmArea() {
+    const ca = document.getElementById('remove-confirm-area');
+    if (!ca) return;
+    if (pendingRemoveSection === null || pendingRemoveSection >= plateSections.length) {
+      ca.innerHTML = ''; return;
+    }
+    const s = plateSections[pendingRemoveSection];
+    ca.innerHTML = `
+      <div class="remove-confirm-box">
+        <span class="remove-confirm-label">Remove ${s.emoji} ${s.name} from this plate?</span>
+        <button class="btn-accent btn-sm" id="confirm-remove-btn">Remove</button>
+        <button class="btn-secondary btn-sm" id="cancel-remove-btn">Keep</button>
+      </div>`;
+    document.getElementById('confirm-remove-btn')?.addEventListener('click', () => {
+      const idx = pendingRemoveSection;
+      pendingRemoveSection = null;
+      removeSection(idx);
+    });
+    document.getElementById('cancel-remove-btn')?.addEventListener('click', () => {
+      pendingRemoveSection = null;
+      renderConfirmArea();
+    });
+  }
+
+  function removeSection(idx) {
+    const removed = plateSections.splice(idx, 1)[0];
+    removedSections.push(removed);
+    // Redistribute removed section's % proportionally among the remaining active sections
+    const totalRem = plateSections.reduce((s, sec) => s + sec.pct, 0);
+    if (totalRem > 0) {
+      const bonus = removed.pct;
+      plateSections.forEach(s => { s.pct += bonus * (s.pct / totalRem); });
+    } else {
+      plateSections.forEach(s => { s.pct = 100 / plateSections.length; });
+    }
+    // Normalize to sum exactly 100
+    const sum = plateSections.reduce((s, sec) => s + sec.pct, 0);
+    plateSections.forEach(s => { s.pct = s.pct * 100 / sum; });
+    verdictConfirmed = null;
+    renderPlateSVG();
+    renderVerdictUI();
+  }
+
+  function reAddSection(removedIdx) {
+    const section = removedSections.splice(removedIdx, 1)[0];
+    // Give the re-added section an equal share, shrink existing proportionally
+    const n = plateSections.length;
+    plateSections.forEach(s => { s.pct = s.pct * n / (n + 1); });
+    section.pct = 100 / (n + 1);
+    plateSections.push(section);
+    // Restore original order from DEFAULT_SECTIONS
+    const order = DEFAULT_SECTIONS.map(d => d.name);
+    plateSections.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+    verdictConfirmed = null;
+    renderPlateSVG();
+    renderVerdictUI();
+  }
+
+  // ─────────────────────────────────────
+  // PLATE CIRCLE — DRAG
+  // ─────────────────────────────────────
+  function startPlateDrag(e) {
+    e.preventDefault();
+    const handleIdx = parseInt((e.currentTarget as HTMLElement).dataset.i);
+    const svg = document.getElementById('plate-svg');
+
+    function move(ev) {
+      ev.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const svgX = (cx - rect.left) / rect.width * 200;
+      const svgY = (cy - rect.top) / rect.height * 200;
+      let angle = Math.atan2(svgY - 100, svgX - 100) * 180 / Math.PI + 90;
+      if (angle < 0) angle += 360;
+      if (angle >= 360) angle -= 360;
+      let newPct = angle / 3.6;
+
+      // Build cumulative boundaries array
+      let cum2 = 0;
+      const cumPcts = [];
+      for (let j = 0; j < plateSections.length - 1; j++) {
+        cum2 += plateSections[j].pct;
+        cumPcts.push(cum2);
+      }
+
+      // Clamp: min 5% per active section — sections are removed explicitly via × button
+      const minSize = 5;
+      const prevBound = handleIdx === 0 ? 0 : cumPcts[handleIdx - 1];
+      const nextBound = handleIdx === cumPcts.length - 1 ? 100 : cumPcts[handleIdx + 1];
+      newPct = Math.max(prevBound + minSize, Math.min(nextBound - minSize, newPct));
+      cumPcts[handleIdx] = newPct;
+
+      // Recompute section percentages from cumulative boundaries
+      plateSections[0].pct = cumPcts[0];
+      for (let j = 1; j < plateSections.length - 1; j++) {
+        plateSections[j].pct = cumPcts[j] - cumPcts[j - 1];
+      }
+      plateSections[plateSections.length - 1].pct = 100 - cumPcts[cumPcts.length - 1];
+
+      renderPlateSVG();
+    }
+
+    function end() {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', end);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', end);
+    }
+
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+  }
+
+  // ─────────────────────────────────────
+  // SIMPLE MODE — PLATES
+  // ─────────────────────────────────────
+  function openPlateLogger(meal) {
+    currentPlateMeal = meal;
+    if (!localStorage.getItem('cm_onboarded_plate')) {
+      document.getElementById('plate-edu-overlay')?.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      return;
+    }
+    openPlateLoggerPanel(meal);
+  }
+
+  function openPlateLoggerPanel(meal) {
+    currentPlateMeal = meal;
+    verdictConfirmed = null;
+
+    const mealConf = PLATE_MEALS.find(m => m.id === meal);
+    const title = document.getElementById('plate-logger-title');
+    if (title) title.textContent = `Log ${mealConf ? mealConf.label : meal}`;
+
+    // Load saved values if this plate was already logged
+    const savedPlate = getTodayPlates()[meal];
+    if (savedPlate) {
+      if (savedPlate.sections && Array.isArray(savedPlate.sections)) {
+        const knownNames = new Set(DEFAULT_SECTIONS.map(d => d.name));
+        const compatible = savedPlate.sections.every(s => knownNames.has(s.name));
+        if (compatible) {
+          plateSections = savedPlate.sections.map(s => {
+            const def = DEFAULT_SECTIONS.find(d => d.name === s.name);
+            return { name: s.name, emoji: def?.emoji || s.emoji || '', color: def?.color || s.color || '#888', pct: s.pct };
+          });
+          removedSections = DEFAULT_SECTIONS
+            .filter(d => !plateSections.find(s => s.name === d.name))
+            .map(d => ({ ...d }));
+        } else {
+          // Old 4-section data — reset to new 3-section defaults
+          plateSections = DEFAULT_SECTIONS.map(s => ({ ...s }));
+          removedSections = [];
+        }
+      } else {
+        // Legacy flat format
+        plateSections = DEFAULT_SECTIONS.map(s => ({ ...s }));
+        removedSections = [];
+      }
+      pendingRemoveSection = null;
+      verdictConfirmed = savedPlate.verdict || null;
+      const noteEl = document.getElementById('plate-note') as HTMLInputElement;
+      if (noteEl) noteEl.value = savedPlate.note || '';
+    } else {
+      plateSections = DEFAULT_SECTIONS.map(s => ({ ...s }));
+      removedSections = [];
+      pendingRemoveSection = null;
+      const noteEl = document.getElementById('plate-note') as HTMLInputElement;
+      if (noteEl) noteEl.value = '';
+    }
+
+    const panel = document.getElementById('plate-logger-panel');
+    if (panel) panel.classList.remove('hidden');
+    renderPlateSVG();
+    renderVerdictUI();
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closePlateLogger() {
+    currentPlateMeal = null;
+    verdictConfirmed = null;
+    removedSections = [];
+    pendingRemoveSection = null;
+    document.getElementById('plate-logger-panel')?.classList.add('hidden');
+    document.getElementById('plate-info-panel')?.classList.add('hidden');
+  }
+
+  function logPlate() {
+    if (!currentPlateMeal || !verdictConfirmed) return;
+    const note = ((document.getElementById('plate-note') as HTMLInputElement)?.value || '').trim().slice(0, 200);
+    const plateData = {
+      sections: plateSections.map(s => ({ name: s.name, emoji: s.emoji, pct: Math.round(s.pct), color: s.color })),
+      verdict: verdictConfirmed,
+      note,
+    };
+
+    // Update flex plate used counter based on treat verdict transitions
+    const plates = getTodayPlates();
+    const prevVerdict = plates[currentPlateMeal]?.verdict || null;
+    const nowTreat = verdictConfirmed === 'treat';
+    const wasTreat = prevVerdict === 'treat';
+    if (nowTreat && !wasTreat) {
+      const flex = getFlexPlates(); flex.used++; saveFlexPlates(flex);
+    } else if (!nowTreat && wasTreat) {
+      const flex = getFlexPlates(); flex.used = Math.max(0, flex.used - 1); saveFlexPlates(flex);
+    }
+
+    plates[currentPlateMeal] = plateData;
+    saveTodayPlates(plates);
+
+    // Capture verdict + plate counts before closing (verdictConfirmed gets cleared)
+    const finalVerdict = verdictConfirmed;
+    const finalPlates = getTodayPlates();
+    const healthyCount = PLATE_MEALS.filter(m => finalPlates[m.id]?.verdict === 'healthy').length;
+
+    closePlateLogger();
+
+    // Show 3-second motivational nudge
+    let nudgeMsg = '';
+    if (finalVerdict === 'healthy') {
+      if (healthyCount === 3) nudgeMsg = "Amazing day! 🌟 You nailed the Harvard Plate today!";
+      else if (healthyCount === 2) nudgeMsg = "Great job! 🟢 Keep it up for the rest of the day!";
+      else nudgeMsg = "Good start! 🌱 Two more balanced plates to go!";
+    } else {
+      const flex = getFlexPlates();
+      const available = (getSettings().flexAllowance || 2) + flex.earned - flex.used;
+      nudgeMsg = available > 0
+        ? "Enjoy it! 😊 You have flex plates left this week."
+        : "That's okay! 💙 Every meal is a fresh start.";
+    }
+    const nudgeEl = document.getElementById('plate-log-nudge');
+    if (nudgeEl && nudgeMsg) {
+      nudgeEl.textContent = nudgeMsg;
+      nudgeEl.classList.remove('hidden');
+      setTimeout(() => nudgeEl.classList.add('hidden'), 3000);
+    }
+
+    refreshSimpleDashboard();
+  }
+
+  function deletePlate(meal) {
+    const plates = getTodayPlates();
+    // If deleted plate was a treat, decrement used
+    if (plates[meal]?.verdict === 'treat') {
+      const flex = getFlexPlates(); flex.used = Math.max(0, flex.used - 1); saveFlexPlates(flex);
+    }
+    plates[meal] = null;
+    saveTodayPlates(plates);
+    refreshSimpleDashboard();
+  }
+
+  // Day verdict: count treat plates
+  function getDayVerdict() {
+    const plates = getTodayPlates();
+    const logged = PLATE_MEALS.filter(m => plates[m.id]).length;
+    if (logged === 0) return null;
+    const treats = PLATE_MEALS.filter(m => plates[m.id]?.verdict === 'treat').length;
+    if (treats === 0) return { label: 'Great Day 🟢', cls: 'verdict-great' };
+    if (treats === 1) return { label: 'Good Day 🟡', cls: 'verdict-good' };
+    return { label: 'Keep Going 🔵', cls: 'verdict-keep' };
+  }
+
+  function renderPlateSlots() {
+    const container = document.getElementById('plates-slots');
+    if (!container) return;
+    const plates = getTodayPlates();
+
+    container.innerHTML = PLATE_MEALS.map(m => {
+      const p = plates[m.id];
+      if (p) {
+        const isTreat = p.verdict === 'treat';
+        const verdictLabel = isTreat ? 'Treat Plate 🔵' : 'Healthy Plate 🟢';
+        const verdictCls = isTreat ? 'treat' : 'healthy';
+        const sectionsText = p.sections
+          ? p.sections.map(s => `${s.emoji}${s.pct}%`).join(' ')
+          : `🥦${p.veggies || 0}% 🍗${p.protein || 0}% 🍚${p.carbs || 0}% 🥑${p.fats || 0}%`;
+        return `<div class="plate-slot">
+          <span class="plate-slot-label">${m.label}</span>
+          <div class="plate-slot-logged">
+            <span class="plate-slot-verdict ${verdictCls}">${verdictLabel}</span>
+            <span class="plate-slot-sections">${sectionsText}</span>
+            ${p.note ? `<span class="plate-slot-note">${escHtml(p.note)}</span>` : ''}
+          </div>
+          <div class="plate-slot-actions">
+            <button class="plate-action-btn" data-edit="${m.id}">Edit</button>
+            <button class="plate-action-btn danger" data-delete="${m.id}">Delete</button>
+          </div>
+        </div>`;
+      }
+      return `<div class="plate-slot">
+        <span class="plate-slot-label">${m.label}</span>
+        <div class="plate-slot-empty">
+          <button class="btn-secondary btn-sm" data-log="${m.id}">+ Log Plate</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Day verdict badge
+    const v = getDayVerdict();
+    const badge = document.getElementById('day-verdict-badge');
+    if (badge) {
+      badge.textContent = v ? v.label : '—';
+      badge.className = 'day-verdict-badge' + (v ? ' ' + v.cls : '');
+    }
+    const si = document.getElementById('status-indicator');
+    if (si) si.textContent = v ? v.label : '';
+  }
+
+  // ─────────────────────────────────────
+  // SIMPLE MODE — HABITS
+  // ─────────────────────────────────────
+  function renderHabitsCard() {
+    const el = document.getElementById('habits-content');
+    if (!el) return;
+    const habits = getTodayHabits();
+    const waterGoal = getSettings().waterGoal || 8;
+    const water = habits.water || 0;
+
+    el.innerHTML = `
+      <div class="habit-group">
+        <span class="habit-group-label">💧 Water — ${water}/${waterGoal} glasses</span>
+        <div class="water-counter-row">
+          <button class="water-btn" id="water-minus-btn">−</button>
+          <div style="display:flex;flex-wrap:wrap;gap:2px">${Array.from({length: waterGoal}, (_, i) =>
+            `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${i < water ? '#3b82f6' : 'var(--color-hairline)'}"></span>`
+          ).join('')}</div>
+          <button class="water-btn" id="water-plus-btn">+</button>
+        </div>
+      </div>
+      <div class="habit-group">
+        <span class="habit-group-label">😴 Sleep — Did you sleep 7+ hours?</span>
+        <div class="habit-btn-row">
+          <button class="habit-pill${habits.sleep === true ? ' active' : ''}" data-habit="sleep" data-val="true">Yes ✅</button>
+          <button class="habit-pill${habits.sleep === false ? ' active' : ''}" data-habit="sleep" data-val="false">No ❌</button>
+        </div>
+      </div>
+      <div class="habit-group">
+        <span class="habit-group-label">🏃 Activity</span>
+        <div class="habit-btn-row">
+          <button class="habit-pill${habits.activity === 'steps' ? ' active' : ''}" data-habit="activity" data-val="steps">10k Steps 👟</button>
+          <button class="habit-pill${habits.activity === 'gym' ? ' active' : ''}" data-habit="activity" data-val="gym">1hr Gym 🏋️</button>
+          <button class="habit-pill${habits.activity === 'rest' ? ' active' : ''}" data-habit="activity" data-val="rest">Rest Day 😴</button>
+        </div>
+      </div>
+      <div class="habit-group">
+        <span class="habit-group-label">😊 Mood</span>
+        <div class="mood-row">
+          ${['😞','😐','🙂','😊','😄'].map((emoji, i) =>
+            `<button class="mood-btn${habits.mood === i+1 ? ' active' : ''}" data-mood="${i+1}">${emoji}</button>`
+          ).join('')}
+        </div>
+      </div>
+      <div class="habit-group">
+        <span class="habit-group-label">⚡ Energy</span>
+        <div class="habit-btn-row">
+          <button class="habit-pill${habits.energy === 'low' ? ' active' : ''}" data-habit="energy" data-val="low">Low</button>
+          <button class="habit-pill${habits.energy === 'medium' ? ' active' : ''}" data-habit="energy" data-val="medium">Medium</button>
+          <button class="habit-pill${habits.energy === 'high' ? ' active' : ''}" data-habit="energy" data-val="high">High</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('water-plus-btn')?.addEventListener('click', () => {
+      const h = getTodayHabits(); h.water = Math.min((h.water || 0) + 1, 20);
+      saveTodayHabits(h); renderHabitsCard(); renderChecklistCard(); refreshStreakAndBadges('simple');
+    });
+    document.getElementById('water-minus-btn')?.addEventListener('click', () => {
+      const h = getTodayHabits(); h.water = Math.max((h.water || 0) - 1, 0);
+      saveTodayHabits(h); renderHabitsCard(); renderChecklistCard(); refreshStreakAndBadges('simple');
+    });
+
+    el.querySelectorAll('[data-habit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = (btn as HTMLElement).dataset.habit;
+        const rawVal = (btn as HTMLElement).dataset.val;
+        const val = rawVal === 'true' ? true : rawVal === 'false' ? false : rawVal;
+        const h = getTodayHabits();
+
+        // Activity → earn +0.5 flex plate bonus (max 2 total earned bonus)
+        if (field === 'activity') {
+          const wasActive = h.activity === 'steps' || h.activity === 'gym';
+          const isActive = val === 'steps' || val === 'gym';
+          if (!wasActive && isActive && !h.flexBonusGiven) {
+            h.flexBonusGiven = true;
+            const flex = getFlexPlates();
+            flex.earned = Math.min(2, flex.earned + 0.5);
+            saveFlexPlates(flex);
+          }
+        }
+
+        h[field] = val;
+        saveTodayHabits(h);
+        renderHabitsCard();
+        renderFlexPlates();
+        refreshStreakAndBadges('simple');
+      });
+    });
+
+    el.querySelectorAll('[data-mood]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const h = getTodayHabits();
+        h.mood = parseInt((btn as HTMLElement).dataset.mood);
+        saveTodayHabits(h);
+        renderHabitsCard();
+      });
+    });
+  }
+
+  function renderChecklistCard() {
+    const el = document.getElementById('checklist-content');
+    if (!el) return;
+    const habits = getTodayHabits();
+    const waterGoal = getSettings().waterGoal || 8;
+    const waterEnough = (habits.water || 0) >= waterGoal;
+
+    el.innerHTML = [
+      { field: 'fruits', label: '🍎 Had fruits today?' },
+      { field: 'salad',  label: '🥗 Had salad or veggies today?' },
+      { field: 'nuts',   label: '🥜 Had nuts today?' },
+    ].map(item => `
+      <label class="checklist-item">
+        <input type="checkbox" data-check="${item.field}" ${habits[item.field] ? 'checked' : ''} />
+        <span>${item.label}</span>
+      </label>
+    `).join('') + `
+      <div class="checklist-item auto-item">
+        <input type="checkbox" ${waterEnough ? 'checked' : ''} disabled style="opacity:0.6" />
+        <span class="checklist-label">💧 Drank enough water? ${waterEnough ? '(auto ✅)' : `(${habits.water || 0}/${waterGoal} glasses)`}</span>
+      </div>`;
+
+    el.querySelectorAll('[data-check]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const h = getTodayHabits();
+        h[(cb as HTMLElement).dataset.check] = (cb as HTMLInputElement).checked;
+        saveTodayHabits(h);
+      });
+    });
+  }
+
+  // ─────────────────────────────────────
+  // SIMPLE MODE — FLEX PLATES
+  // ─────────────────────────────────────
+  function renderFlexPlates() {
+    const el = document.getElementById('flex-plates-content');
+    if (!el) return;
+    const flex = getFlexPlates();
+    const settings = getSettings();
+    const baseAllowance = settings.flexAllowance || 2;
+    const available = baseAllowance + flex.earned - flex.used;
+
+    let statusCls, statusText;
+    if (available > 0)      { statusCls = 'flex-status-green';  statusText = `${available} available`; }
+    else if (available === 0) { statusCls = 'flex-status-yellow'; statusText = 'No flex plates left this week'; }
+    else                     { statusCls = 'flex-status-red';    statusText = 'Over your flex plate limit'; }
+
+    const totalSlots = Math.max(baseAllowance + flex.earned, flex.used);
+    const icons = Array.from({ length: totalSlots }, (_, i) => {
+      const cls = i < flex.used ? 'used' : i < baseAllowance + flex.earned ? 'avail' : '';
+      return `<span class="flex-icon ${cls}">🔵</span>`;
+    }).join('');
+
+    el.innerHTML = `
+      <p class="flex-plates-summary">
+        Flex Plates this week: <strong>${flex.used} used</strong> / <strong>${flex.earned} earned</strong>
+      </p>
+      <span class="flex-status ${statusCls}">${statusText}</span>
+      <div class="flex-plates-icons">${icons}</div>
+      <p class="flex-plates-note">Base: ${baseAllowance} · +${flex.earned} from activity (max 2) · Resets Monday</p>
+    `;
+  }
+
+  // ─────────────────────────────────────
+  // SIMPLE MODE — WEIGHT LOG
+  // ─────────────────────────────────────
+  function shouldShowWeightCard() {
+    const weekKey = getWeekKey();
+    const log = getWeightLog();
+    return isMonday() || !log.some(e => e.week === weekKey);
+  }
+
+  function renderWeightCard() {
+    const card = document.getElementById('weight-card');
+    const el = document.getElementById('weight-content');
+    if (!card || !el) return;
+    if (!shouldShowWeightCard()) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+
+    const unitLabel = (localStorage.getItem('cm_units') || 'imperial') === 'metric' ? 'kg' : 'lbs';
+    const log = getWeightLog();
+    const recent = log.slice(-4);
+
+    el.innerHTML = `
+      <div class="weight-form">
+        <input type="number" class="form-input weight-input" id="weight-input" placeholder="${unitLabel}" min="1" max="1000" step="0.1" />
+        <span style="font-size:14px;color:var(--color-mute)">${unitLabel}</span>
+        <button class="btn-accent btn-sm" id="log-weight-btn">Log Weight</button>
+      </div>
+      ${recent.length > 0 ? `
+        <div class="weight-trend">
+          <p class="eyebrow" style="margin-bottom:var(--space-xs)">Recent</p>
+          ${recent.reverse().map((e, i, arr) => {
+            const prev = arr[i + 1];
+            const dir = !prev ? '—' : e.weight > prev.weight ? '↑' : e.weight < prev.weight ? '↓' : '→';
+            return `<div class="weight-trend-row"><span>${e.week}</span><span>${e.weight} ${e.unit}</span><span class="weight-trend-dir">${dir}</span></div>`;
+          }).join('')}
+        </div>` : ''}`;
+
+    document.getElementById('log-weight-btn')?.addEventListener('click', () => {
+      const val = parseFloat((document.getElementById('weight-input') as HTMLInputElement).value);
+      if (!val || val <= 0) return;
+      const weekKey = getWeekKey();
+      const wlog = getWeightLog().filter(e => e.week !== weekKey);
+      wlog.push({ week: weekKey, weight: val, unit: unitLabel });
+      saveWeightLog(wlog);
+      renderWeightCard();
+    });
+  }
+
+  // ─────────────────────────────────────
+  // SIMPLE MODE — FULL REFRESH
+  // ─────────────────────────────────────
+  function refreshSimpleDashboard() {
+    renderPlateSlots();
+    renderFlexPlates();
+    renderHabitsCard();
+    renderChecklistCard();
+    renderWeightCard();
+    refreshStreakAndBadges('simple');
+  }
+
+  // ─────────────────────────────────────
+  // DETAILED MODE — MEAL SECTIONS
+  // ─────────────────────────────────────
+  let openFormSection = null;
+
+  function getTodayMealsBySection() {
+    const meals = getTodayMeals();
+    const bySection = {};
+    MEAL_SECTIONS.forEach(s => { bySection[s.id] = []; });
+    meals.forEach((m, idx) => {
+      const sec = m.section || 'misc';
+      if (!bySection[sec]) bySection[sec] = [];
+      bySection[sec].push({ ...m, _idx: idx });
+    });
+    return bySection;
+  }
+
+  function renderMealSections() {
+    const root = document.getElementById('meal-sections-root');
+    if (!root) return;
+    const bySection = getTodayMealsBySection();
+
+    root.innerHTML = MEAL_SECTIONS.map(sec => {
+      const items = bySection[sec.id] || [];
+      const secTotal = items.reduce((s, m) => s + (m.calories || 0), 0);
+      const isOpen = openFormSection === sec.id;
+
+      return `<div class="det-meal-section" id="det-sec-${sec.id}">
+        <div class="det-section-header">
+          <span class="det-section-title">${sec.label}</span>
+          <div class="det-section-meta">
+            <span class="det-section-total${secTotal > 0 ? ' has-food' : ''}">${secTotal > 0 ? secTotal + ' kcal' : ''}</span>
+            <button class="btn-accent btn-sm" data-open-form="${sec.id}">+ Add</button>
+          </div>
+        </div>
+        <div class="det-meal-list">
+          ${items.map(m => `
+            <div class="det-meal-row">
+              <span class="det-meal-name">${escHtml(m.name)}</span>
+              ${(m.protein || m.carbs || m.fats) ? `<span class="det-meal-macros">P:${m.protein||0}g C:${m.carbs||0}g F:${m.fats||0}g</span>` : ''}
+              <span class="det-meal-cal">${m.calories} kcal</span>
+              <button class="det-meal-del" data-del-idx="${m._idx}" aria-label="Delete ${escHtml(m.name)}">×</button>
+            </div>
+          `).join('')}
+        </div>
+        ${isOpen ? `<div class="det-inline-form" id="form-${sec.id}">
+          <div class="form-group"><label class="form-label" style="font-size:13px">Food name</label><input type="text" class="form-input" id="fn-${sec.id}" placeholder="e.g. Oatmeal" maxlength="200" /></div>
+          <div class="form-group"><label class="form-label" style="font-size:13px">Calories <span style="color:var(--color-mute)">(required)</span></label><input type="number" class="form-input" id="fc-${sec.id}" placeholder="kcal" min="1" /></div>
+          <div class="det-form-row">
+            <div class="form-group"><label class="form-label" style="font-size:13px">Protein <span style="color:var(--color-mute)">(optional)</span></label><input type="number" class="form-input" id="fp-${sec.id}" placeholder="0g" min="0" /></div>
+            <div class="form-group"><label class="form-label" style="font-size:13px">Carbs <span style="color:var(--color-mute)">(optional)</span></label><input type="number" class="form-input" id="fk-${sec.id}" placeholder="0g" min="0" /></div>
+            <div class="form-group"><label class="form-label" style="font-size:13px">Fats <span style="color:var(--color-mute)">(optional)</span></label><input type="number" class="form-input" id="ff-${sec.id}" placeholder="0g" min="0" /></div>
+          </div>
+          <div class="det-form-actions">
+            <button class="btn-accent btn-sm" data-add-meal="${sec.id}">Add</button>
+            <button class="btn-secondary btn-sm" data-close-form="${sec.id}">Cancel</button>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+
+  }
+
+  function updateDetailedCaloriesUI(target) {
+    const meals = getTodayMeals();
+    const consumed = totalForDay(meals);
+    const pct = Math.min(100, Math.round((consumed / target) * 100));
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('cal-consumed', consumed.toLocaleString());
+    set('cal-goal', target.toLocaleString());
+    set('cal-remaining', Math.max(0, target - consumed).toLocaleString());
+    set('cal-percent-text', pct + '% of goal');
+
+    const fill = document.getElementById('progress-fill');
+    if (fill) { fill.style.width = pct + '%'; fill.className = 'progress-fill' + (consumed > target ? ' over' : consumed > target * 0.95 ? ' close' : ''); }
+    document.getElementById('cal-progress')?.setAttribute('aria-valuenow', String(pct));
+
+    const si = document.getElementById('status-indicator');
+    if (si) {
+      if (consumed <= target) { si.textContent = 'On Track ✅'; si.style.color = 'var(--color-accent-deep)'; }
+      else if (consumed <= target + 50) { si.textContent = 'Almost There 🎯'; si.style.color = 'var(--color-warning)'; }
+      else { si.textContent = 'Over Budget ⚠️'; si.style.color = 'var(--color-error)'; }
+    }
+
+    const totalP = meals.reduce((s, m) => s + (m.protein || 0), 0);
+    const totalC = meals.reduce((s, m) => s + (m.carbs || 0), 0);
+    const totalF = meals.reduce((s, m) => s + (m.fats || 0), 0);
+    const hasMacros = totalP > 0 || totalC > 0 || totalF > 0;
+    document.getElementById('macro-totals')?.classList.toggle('hidden', !hasMacros);
+    if (hasMacros) { set('total-protein', totalP + 'g'); set('total-carbs', totalC + 'g'); set('total-fats', totalF + 'g'); }
+  }
+
+  function refreshDetailedDashboard() {
+    const target = parseInt(localStorage.getItem('cm_target') || localStorage.getItem('cm_tdee') || '0');
+    updateDetailedCaloriesUI(target);
+    renderMealSections();
+    refreshStreakAndBadges('detailed');
+  }
+
+  // ─────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────
   const tdeeRaw = localStorage.getItem('cm_tdee');
   if (!tdeeRaw) {
-    document.getElementById('no-tdee-state').classList.remove('hidden');
+    document.getElementById('no-tdee-state')?.classList.remove('hidden');
   } else {
-    document.getElementById('dashboard-main').classList.remove('hidden');
+    document.getElementById('dashboard-main')?.classList.remove('hidden');
     document.getElementById('today-date').textContent = formatDate(todayStr());
-    const goal = localStorage.getItem('cm_goal') || 'maintain';
-    const target = parseInt(localStorage.getItem('cm_target') || tdeeRaw);
-    document.getElementById('goal-label').textContent =
-      `Goal: ${GOAL_LABELS[goal] || 'Maintain Weight'} — ${target.toLocaleString()} kcal/day`;
-    refreshDashboard();
 
-    const prefill = localStorage.getItem('cm_prefill_meal');
-    if (prefill) {
-      localStorage.removeItem('cm_prefill_meal');
-      try { const { name, calories } = JSON.parse(prefill); if (name && calories > 0) addMeal(name, calories); } catch {}
+    const mode = localStorage.getItem('cm_mode') || 'simple';
+    const modeBadge = document.getElementById('mode-badge');
+    if (modeBadge) modeBadge.textContent = mode === 'simple' ? 'Simple 🌱' : 'Detailed 📊';
+
+    if (mode === 'simple') {
+      document.getElementById('simple-dashboard')?.classList.remove('hidden');
+      document.getElementById('goal-label').style.display = 'none';
+
+      // Permanent event delegation for plate slots (works across re-renders)
+      document.getElementById('plates-slots')?.addEventListener('click', e => {
+        const logBtn  = (e.target as Element).closest('[data-log]');
+        const editBtn = (e.target as Element).closest('[data-edit]');
+        const delBtn  = (e.target as Element).closest('[data-delete]');
+        if (logBtn)  openPlateLogger((logBtn as HTMLElement).dataset.log);
+        else if (editBtn) openPlateLogger((editBtn as HTMLElement).dataset.edit);
+        else if (delBtn)  deletePlate((delBtn as HTMLElement).dataset.delete);
+      });
+
+      document.getElementById('cancel-plate-btn')?.addEventListener('click', closePlateLogger);
+      document.getElementById('log-plate-btn')?.addEventListener('click', logPlate);
+
+      // Education modal CTA
+      document.getElementById('plate-edu-cta')?.addEventListener('click', () => {
+        try { localStorage.setItem('cm_onboarded_plate', 'true'); } catch {}
+        document.getElementById('plate-edu-overlay')?.classList.add('hidden');
+        document.body.style.overflow = '';
+        if (currentPlateMeal) openPlateLoggerPanel(currentPlateMeal);
+      });
+
+      // Info panel toggle
+      document.getElementById('plate-info-btn')?.addEventListener('click', () => {
+        document.getElementById('plate-info-panel')?.classList.toggle('hidden');
+      });
+
+      refreshSimpleDashboard();
+    } else {
+      document.getElementById('detailed-dashboard')?.classList.remove('hidden');
+      const goal = localStorage.getItem('cm_goal') || 'maintain';
+      const target = parseInt(localStorage.getItem('cm_target') || tdeeRaw);
+      document.getElementById('goal-label').textContent =
+        `Goal: ${GOAL_LABELS[goal] || 'Maintain Weight'} — ${target.toLocaleString()} kcal/day`;
+
+      // Permanent delegated listener — attached once, survives all innerHTML re-renders
+      document.getElementById('meal-sections-root')?.addEventListener('click', e => {
+        const openBtn  = (e.target as Element).closest('[data-open-form]');
+        const addBtn   = (e.target as Element).closest('[data-add-meal]');
+        const closeBtn = (e.target as Element).closest('[data-close-form]');
+        const delBtn   = (e.target as Element).closest('[data-del-idx]');
+
+        if (openBtn) {
+          const id = (openBtn as HTMLElement).dataset.openForm;
+          openFormSection = openFormSection === id ? null : id;
+          renderMealSections();
+          if (openFormSection) {
+            document.getElementById('form-' + openFormSection)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(() => (document.getElementById('fn-' + openFormSection) as HTMLInputElement)?.focus(), 100);
+          }
+        } else if (addBtn) {
+          const secId = (addBtn as HTMLElement).dataset.addMeal;
+          const name = ((document.getElementById('fn-' + secId) as HTMLInputElement)?.value || '').trim().slice(0, 200);
+          const cal = parseInt((document.getElementById('fc-' + secId) as HTMLInputElement)?.value);
+          if (!name || !cal || cal < 1) return;
+          const meal: any = { name, calories: cal, section: secId };
+          const pv = parseFloat((document.getElementById('fp-' + secId) as HTMLInputElement)?.value);
+          const cv = parseFloat((document.getElementById('fk-' + secId) as HTMLInputElement)?.value);
+          const fv = parseFloat((document.getElementById('ff-' + secId) as HTMLInputElement)?.value);
+          if (!isNaN(pv)) meal.protein = pv;
+          if (!isNaN(cv)) meal.carbs = cv;
+          if (!isNaN(fv)) meal.fats = fv;
+          const meals = getTodayMeals(); meals.push(meal); saveTodayMeals(meals);
+          openFormSection = null;
+          refreshDetailedDashboard();
+        } else if (closeBtn) {
+          openFormSection = null;
+          renderMealSections();
+        } else if (delBtn) {
+          const idx = parseInt((delBtn as HTMLElement).dataset.delIdx);
+          const meals = getTodayMeals(); meals.splice(idx, 1); saveTodayMeals(meals);
+          refreshDetailedDashboard();
+        }
+      });
+
+      refreshDetailedDashboard();
     }
   }
 </script>

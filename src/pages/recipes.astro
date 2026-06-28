@@ -252,6 +252,17 @@ const jsonLd = {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Log this meal
         </button>
+        <div class="section-picker hidden" id="section-picker">
+          <p class="section-picker-label">Add to which meal?</p>
+          <div class="section-picker-btns" id="section-picker-btns">
+            <button type="button" class="section-btn" data-section="breakfast">🌅 Breakfast</button>
+            <button type="button" class="section-btn" data-section="lunch">☀️ Lunch</button>
+            <button type="button" class="section-btn" data-section="snacks">🍎 Snacks</button>
+            <button type="button" class="section-btn" data-section="dinner">🌙 Dinner</button>
+            <button type="button" class="section-btn" data-section="misc">🍵 Misc</button>
+          </div>
+        </div>
+        <div class="recipe-toast hidden" id="recipe-toast"></div>
         <button type="button" class="btn-save-recipe hidden" id="save-recipe-btn">⭐ Save to My Recipes</button>
         <div class="user-recipe-actions hidden" id="user-recipe-actions">
           <button type="button" class="btn-user-edit" id="edit-recipe-btn">✏️ Edit Recipe</button>
@@ -508,6 +519,16 @@ const jsonLd = {
   /* ── My Recipe badge in modal ── */
   .modal-badge-user { background: var(--color-accent-soft); color: var(--color-accent-deep); border: 1px solid var(--color-accent); }
 
+  /* ── Section picker ── */
+  .section-picker { margin-top: var(--space-sm); }
+  .section-picker-label { font-size: 14px; color: var(--color-body); margin-bottom: var(--space-xs); font-weight: 500; text-align: center; }
+  .section-picker-btns { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: center; }
+  .section-btn { font-size: 13px; font-weight: 500; padding: 8px var(--space-md); border-radius: var(--radius-pill); border: 1px solid var(--color-hairline); background: var(--color-canvas-soft); color: var(--color-body); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .section-btn:hover { border-color: var(--color-accent); color: var(--color-accent-deep); background: var(--color-accent-soft); }
+
+  /* ── Recipe log toast ── */
+  .recipe-toast { margin-top: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--color-accent-soft); border: 1px solid var(--color-accent); border-radius: var(--radius-md); font-size: 14px; font-weight: 600; color: var(--color-accent-deep); text-align: center; }
+
   /* Responsive */
   @media (max-width: 900px) {
     .recipes-grid { grid-template-columns: repeat(2, 1fr); }
@@ -529,6 +550,29 @@ const jsonLd = {
   const overlay = document.getElementById('modal-overlay');
   const modalBox = document.getElementById('modal-box');
   let activeJsonLd = null;
+  let currentModalRecipe = null;
+
+  function todayStr() { return new Date().toISOString().split('T')[0]; }
+  function getLogs() { try { return JSON.parse(localStorage.getItem('cm_logs') || '{}'); } catch { return {}; } }
+  function saveLogs(l) { try { localStorage.setItem('cm_logs', JSON.stringify(l)); } catch {} }
+
+  function logMealToSection(name, calories, protein, carbs, fats, section) {
+    const logs = getLogs();
+    const today = todayStr();
+    if (!Array.isArray(logs[today])) logs[today] = [];
+    const meal = { name, calories, section };
+    if (protein != null) meal.protein = protein;
+    if (carbs != null) meal.carbs = carbs;
+    if (fats != null) meal.fats = fats;
+    logs[today].push(meal);
+    saveLogs(logs);
+  }
+
+  function showSectionPicker(name, calories, protein, carbs, fats) {
+    currentModalRecipe = { name, calories, protein, carbs, fats };
+    document.getElementById('log-recipe-btn').classList.add('hidden');
+    document.getElementById('section-picker').classList.remove('hidden');
+  }
 
   function prepTimeToISO(t) {
     const m = String(t).match(/(\d+)/);
@@ -569,11 +613,18 @@ const jsonLd = {
     document.getElementById('modal-steps').innerHTML =
       recipe.steps.map(s => `<li>${esc(s)}</li>`).join('');
 
-    document.getElementById('log-recipe-btn').onclick = () => {
-      localStorage.setItem('cm_prefill_meal', JSON.stringify({ name: recipe.name, calories: recipe.calories }));
-      closeModal();
-      window.location.href = '/dashboard';
-    };
+    const mode = localStorage.getItem('cm_mode') || 'simple';
+    const logBtn = document.getElementById('log-recipe-btn');
+    if (mode === 'simple') {
+      logBtn.classList.add('hidden');
+    } else {
+      logBtn.classList.remove('hidden');
+      logBtn.style.opacity = '';
+      logBtn.title = '';
+      logBtn.onclick = () => {
+        showSectionPicker(recipe.name, recipe.calories, recipe.protein, recipe.carbs, recipe.fats);
+      };
+    }
 
     // Inject JSON-LD schema
     if (activeJsonLd) activeJsonLd.remove();
@@ -613,6 +664,10 @@ const jsonLd = {
     overlay.classList.add('hidden');
     document.body.style.overflow = '';
     if (activeJsonLd) { activeJsonLd.remove(); activeJsonLd = null; }
+    document.getElementById('section-picker').classList.add('hidden');
+    document.getElementById('recipe-toast').classList.add('hidden');
+    document.getElementById('log-recipe-btn').classList.remove('hidden');
+    currentModalRecipe = null;
   }
 
   // Card clicks
@@ -625,6 +680,21 @@ const jsonLd = {
   document.getElementById('modal-close').addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Section picker handler
+  document.getElementById('section-picker-btns').addEventListener('click', e => {
+    const btn = e.target.closest('.section-btn');
+    if (!btn || !currentModalRecipe) return;
+    const section = btn.dataset.section;
+    const sectionLabel = btn.textContent.trim();
+    const { name, calories, protein, carbs, fats } = currentModalRecipe;
+    logMealToSection(name, calories, protein, carbs, fats, section);
+    document.getElementById('section-picker').classList.add('hidden');
+    const toast = document.getElementById('recipe-toast');
+    toast.textContent = `Added to ${sectionLabel} ✓`;
+    toast.classList.remove('hidden');
+    setTimeout(() => closeModal(), 1400);
+  });
 
   // ── Filtering ──
   const state = { diet: 'all', type: 'all', cal: 'all' };
@@ -851,7 +921,7 @@ const jsonLd = {
     saveUserRecipes(saved);
     btn.textContent = '✓ Saved';
     btn.disabled = true;
-    renderMyRecipesCount();
+    renderMyRecipes();
   }
 
   function openUserModal(id) {
@@ -889,14 +959,22 @@ const jsonLd = {
       '<li style="color:var(--color-mute);list-style:none;padding-left:0">No steps listed.</li>';
 
     const logBtn = document.getElementById('log-recipe-btn');
-    logBtn.style.opacity = recipe.calories != null ? '' : '0.5';
-    logBtn.title = recipe.calories != null ? '' : 'Add calories to enable logging';
-    logBtn.onclick = () => {
-      if (recipe.calories == null) return;
-      localStorage.setItem('cm_prefill_meal', JSON.stringify({ name: recipe.name, calories: recipe.calories }));
-      closeModal();
-      window.location.href = '/dashboard';
-    };
+    const mode = localStorage.getItem('cm_mode') || 'simple';
+    if (mode === 'simple') {
+      logBtn.classList.add('hidden');
+    } else if (recipe.calories == null) {
+      logBtn.classList.remove('hidden');
+      logBtn.style.opacity = '0.5';
+      logBtn.title = 'Add calories to enable logging';
+      logBtn.onclick = null;
+    } else {
+      logBtn.classList.remove('hidden');
+      logBtn.style.opacity = '';
+      logBtn.title = '';
+      logBtn.onclick = () => {
+        showSectionPicker(recipe.name, recipe.calories, recipe.protein, recipe.carbs, recipe.fats);
+      };
+    }
 
     document.getElementById('save-recipe-btn').classList.add('hidden');
     document.getElementById('user-recipe-actions').classList.remove('hidden');

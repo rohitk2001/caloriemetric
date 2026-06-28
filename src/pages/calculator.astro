@@ -25,7 +25,7 @@ const jsonLd = {
         <!-- Left: Form -->
         <div class="calc-main">
           <div class="calc-header">
-            <p class="eyebrow">Step 1 of 2</p>
+            <p class="eyebrow">Step 1 of 3</p>
             <h1 class="section-heading" style="margin-top: var(--space-xs);">Let's find your maintenance calories.</h1>
             <p class="text-body" style="margin-top: var(--space-sm);">
               We use the scientifically-validated Mifflin-St Jeor equation for the most accurate estimate.
@@ -142,7 +142,7 @@ const jsonLd = {
             <!-- Step 2: Goal selection -->
             <div class="divider"></div>
             <div class="goal-picker">
-              <p class="eyebrow" style="margin-bottom: var(--space-md);">Step 2 of 2 — Pick your goal</p>
+              <p class="eyebrow" style="margin-bottom: var(--space-md);">Step 2 of 3 — Pick your goal</p>
               <div class="goal-cards" id="goal-cards">
                 <button type="button" class="goal-pick-card" id="goal-lose" data-goal="lose">
                   <span class="goal-pick-emoji">🔥</span>
@@ -164,6 +164,28 @@ const jsonLd = {
                 </button>
               </div>
               <p class="goal-pick-prompt">Tap a goal to continue →</p>
+            </div>
+
+            <!-- Step 3: Mode selection -->
+            <div class="divider" id="mode-divider" style="display:none"></div>
+            <div class="mode-picker hidden" id="mode-picker">
+              <p class="eyebrow" style="margin-bottom: var(--space-md);">Step 3 of 3 — How do you want to track?</p>
+              <p class="text-body" style="margin-bottom:var(--space-lg);">How do you want to track your health?</p>
+              <div class="mode-cards" id="mode-cards">
+                <button type="button" class="mode-pick-card" data-mode="simple">
+                  <span class="mode-pick-emoji">🌱</span>
+                  <span class="mode-pick-label">Simple</span>
+                  <span class="mode-pick-quote">"Build healthy habits without counting calories"</span>
+                  <span class="mode-pick-desc">Visual plate logging based on the Harvard Healthy Eating Plate — the most trusted visual eating guide, developed by Harvard T.H. Chan School of Public Health.</span>
+                </button>
+                <button type="button" class="mode-pick-card" data-mode="detailed">
+                  <span class="mode-pick-emoji">📊</span>
+                  <span class="mode-pick-label">Detailed</span>
+                  <span class="mode-pick-quote">"I know my calories and want to track precisely"</span>
+                  <span class="mode-pick-desc">Manual meal entry with calorie and macro tracking.</span>
+                </button>
+              </div>
+              <p class="mode-pick-note">You can switch anytime in Settings.</p>
             </div>
 
             <div class="divider"></div>
@@ -257,6 +279,30 @@ const jsonLd = {
   .goal-pick-prompt { font-size: 13px; color: var(--color-mute); margin-top: var(--space-sm); text-align: center; font-family: var(--font-mono); }
 
   .result-actions { display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; }
+
+  /* Mode picker */
+  .mode-picker {}
+  .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-bottom: var(--space-md); }
+  .mode-pick-card {
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);
+    padding: var(--space-lg) var(--space-md);
+    border: 2px solid var(--color-hairline);
+    border-radius: var(--radius-lg);
+    background: var(--color-canvas-soft);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    text-align: center;
+  }
+  .mode-pick-card:hover { border-color: var(--color-accent); background: var(--color-accent-soft); transform: translateY(-2px); }
+  .mode-pick-card.selected { border-color: var(--color-accent); background: var(--color-accent-soft); }
+  .mode-pick-emoji { font-size: 32px; }
+  .mode-pick-label { font-size: 16px; font-weight: 700; color: var(--color-ink); }
+  .mode-pick-quote { font-size: 13px; font-style: italic; color: var(--color-body); line-height: 1.4; }
+  .mode-pick-desc { font-size: 12px; color: var(--color-mute); font-family: var(--font-mono); }
+  .mode-pick-note { font-size: 13px; color: var(--color-mute); text-align: center; font-family: var(--font-mono); }
+  @media (max-width: 600px) {
+    .mode-cards { grid-template-columns: 1fr; }
+  }
 
   /* Sidebar */
   .info-card { padding: var(--space-lg); }
@@ -446,13 +492,30 @@ const jsonLd = {
     card.addEventListener('click', () => {
       const goal = (card as HTMLElement).dataset.goal!;
       const target = calculatedTdee + GOAL_OFFSETS[goal];
-      localStorage.setItem('cm_goal', goal);
-      localStorage.setItem('cm_target', String(target));
+      try {
+        localStorage.setItem('cm_goal', goal);
+        localStorage.setItem('cm_target', String(target));
+      } catch {}
 
       document.querySelectorAll('.goal-pick-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
 
-      // Brief flash, then navigate
+      // Show mode picker
+      const modeDivider = document.getElementById('mode-divider')!;
+      const modePicker = document.getElementById('mode-picker')!;
+      modeDivider.style.display = '';
+      modePicker.classList.remove('hidden');
+      modePicker.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  // ── Mode selection ──
+  document.querySelectorAll('.mode-pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const mode = (card as HTMLElement).dataset.mode!;
+      try { localStorage.setItem('cm_mode', mode); } catch {}
+      document.querySelectorAll('.mode-pick-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
       setTimeout(() => { window.location.href = '/dashboard'; }, 300);
     });
   });

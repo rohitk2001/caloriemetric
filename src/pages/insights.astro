@@ -1,0 +1,512 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Insights ✨ — CalorieMetric"
+  description="See your weekly health patterns — sleep, water, activity, mood and plates all in one place."
+>
+  <section class="insights-page">
+    <div class="container insights-container">
+      <div id="insights-root">
+        <div class="insights-loading">Loading your insights…</div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style is:global>
+  .insights-page { padding: var(--space-xl) 0 var(--space-5xl); }
+  .insights-container { max-width: 680px; }
+
+  /* Header */
+  .insights-header { margin-bottom: var(--space-xl); }
+  .insights-title { font-size: 28px; font-weight: 700; letter-spacing: -0.8px; color: var(--color-ink); line-height: 1.2; }
+  .insights-subtitle { font-size: 14px; color: var(--color-mute); font-family: var(--font-mono); margin-top: var(--space-xs); }
+  .insights-note { font-size: 12px; color: var(--color-mute); margin-top: 4px; font-style: italic; }
+
+  /* Main insight card */
+  .insight-main-card {
+    background: linear-gradient(135deg, var(--color-accent-soft) 0%, var(--color-canvas-soft) 100%);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+  }
+  .insight-eyebrow { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; color: var(--color-accent-deep); font-weight: 600; letter-spacing: 0.05em; margin-bottom: var(--space-sm); }
+  .insight-text { font-size: 17px; font-weight: 600; color: var(--color-ink); line-height: 1.55; }
+
+  /* Section cards */
+  .ins-section { margin-bottom: var(--space-md); }
+  .ins-card { padding: var(--space-lg); }
+  .ins-title { font-size: 16px; font-weight: 600; color: var(--color-ink); margin-bottom: var(--space-md); }
+
+  /* Chips */
+  .ins-chips { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+  .ins-chip { font-size: 13px; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--color-canvas-soft-2); color: var(--color-body); font-family: var(--font-mono); white-space: nowrap; }
+
+  /* Progress bars */
+  .ins-bar-wrap { margin-bottom: var(--space-sm); }
+  .ins-bar-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .ins-bar-label { font-size: 13px; color: var(--color-body); }
+  .ins-bar-count { font-size: 12px; font-family: var(--font-mono); color: var(--color-mute); }
+  .ins-bar { height: 6px; background: var(--color-hairline); border-radius: var(--radius-full); overflow: hidden; }
+  .ins-bar-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.5s ease; }
+  .ins-bar-fill.good { background: var(--color-accent); }
+  .ins-bar-fill.okay { background: #f59e0b; }
+  .ins-bar-fill.poor { background: var(--color-error); }
+
+  /* Correlation block */
+  .ins-corr { background: var(--color-canvas-soft); border-radius: var(--radius-md); padding: var(--space-md); margin-top: var(--space-md); }
+  .ins-corr-eyebrow { font-size: 11px; font-family: var(--font-mono); color: var(--color-mute); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-xs); }
+  .ins-corr-row { display: flex; align-items: baseline; gap: var(--space-xs); font-size: 13px; color: var(--color-body); padding: 2px 0; }
+  .ins-corr-arrow { color: var(--color-accent-deep); font-weight: 700; flex-shrink: 0; }
+
+  /* Mood by day */
+  .mood-day-row { display: flex; flex-wrap: wrap; gap: var(--space-md); margin-top: var(--space-md); }
+  .mood-chip { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .mood-chip-name { font-size: 11px; font-family: var(--font-mono); color: var(--color-mute); }
+  .mood-chip-emoji { font-size: 24px; line-height: 1; }
+
+  /* Energy by day */
+  .energy-day-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-md); }
+  .energy-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .energy-chip-name { font-size: 10px; font-family: var(--font-mono); color: var(--color-mute); text-transform: uppercase; }
+  .energy-pill { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: var(--radius-full); white-space: nowrap; }
+  .energy-pill.high   { background: #d1fae5; color: #065f46; }
+  .energy-pill.medium { background: #fef3c7; color: #92400e; }
+  .energy-pill.low    { background: var(--color-canvas-soft-2); color: var(--color-mute); }
+
+  /* Inline text rows */
+  .ins-detail-row { font-size: 13px; color: var(--color-body); margin-bottom: 3px; }
+  .ins-detail-row strong { color: var(--color-ink); }
+  .ins-no-data { font-size: 14px; color: var(--color-mute); font-style: italic; padding: var(--space-xs) 0; }
+
+  /* Empty / loading states */
+  .insights-loading { font-size: 15px; color: var(--color-mute); padding: var(--space-4xl) 0; text-align: center; }
+  .insights-empty { text-align: center; padding: var(--space-4xl) var(--space-xl); }
+  .insights-empty-icon { font-size: 48px; margin-bottom: var(--space-lg); }
+  .insights-empty-text { font-size: 16px; color: var(--color-body); line-height: 1.7; max-width: 380px; margin: 0 auto; }
+
+  /* Harvard education card */
+  .ins-harvard-card { background: linear-gradient(135deg, #d1fae5 0%, var(--color-canvas-soft) 100%); border: 1px solid #6ee7b7; border-radius: var(--radius-lg); padding: var(--space-lg); margin-top: var(--space-md); }
+  html.dark .ins-harvard-card { background: linear-gradient(135deg, #064e3b 0%, var(--color-canvas-soft) 100%); border-color: #065f46; }
+  .ins-harvard-title { font-size: 16px; font-weight: 700; color: var(--color-ink); margin-bottom: var(--space-sm); }
+  .ins-harvard-body { font-size: 14px; color: var(--color-body); line-height: 1.7; margin-bottom: var(--space-md); }
+  .ins-harvard-checks { display: flex; flex-direction: column; gap: 4px; margin-bottom: var(--space-md); }
+  .ins-harvard-check { font-size: 13px; color: #065f46; }
+  html.dark .ins-harvard-check { color: #6ee7b7; }
+  .ins-harvard-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #065f46; text-decoration: none; }
+  html.dark .ins-harvard-link { color: #6ee7b7; }
+  .ins-harvard-link:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .insights-page { padding: var(--space-md) 0 var(--space-3xl); }
+    .insights-title { font-size: 24px; }
+    .insight-text { font-size: 15px; }
+    .mood-day-row { gap: var(--space-sm); }
+  }
+</style>
+
+<script>
+  // ─── Storage ───
+  function getPlatesData() { try { return JSON.parse(localStorage.getItem('cm_plates') || '{}'); } catch { return {}; } }
+  function getHabitsData() { try { return JSON.parse(localStorage.getItem('cm_habits') || '{}'); } catch { return {}; } }
+  function getSettings()   { try { return { waterGoal: 8, ...JSON.parse(localStorage.getItem('cm_settings') || '{}') }; } catch { return { waterGoal: 8 }; } }
+
+  // ─── Helpers ───
+  const MOOD_EMOJIS = ['😞', '😐', '🙂', '😊', '😄'];
+  const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function moodEmoji(val) { return (val >= 1 && val <= 5) ? MOOD_EMOJIS[val - 1] : '—'; }
+  function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+  function r1(n)    { return Math.round(n * 10) / 10; }
+  function pct(n, total) { return total > 0 ? Math.min(100, Math.round(n / total * 100)) : 0; }
+  function barCls(count) { return count >= 5 ? 'good' : count >= 3 ? 'okay' : 'poor'; }
+  function barBadge(count) { return count >= 5 ? '✅' : count >= 3 ? '⚠️' : '🔴'; }
+
+  function getWeekDays() {
+    const today = new Date();
+    const dow = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
+    const days = [];
+    const cur = new Date(monday);
+    while (cur <= today) {
+      days.push(cur.toISOString().split('T')[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return days;
+  }
+
+  function dayAbbr(dateStr) { return DAY_NAMES[new Date(dateStr + 'T12:00:00').getDay()]; }
+  function fmtDate(dateStr) {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function makeBar(count, total, label) {
+    const cls = barCls(count);
+    const w = pct(count, total);
+    return `<div class="ins-bar-wrap">
+      <div class="ins-bar-label-row">
+        <span class="ins-bar-label">${label}</span>
+        <span class="ins-bar-count">${count}/${total} days</span>
+      </div>
+      <div class="ins-bar"><div class="ins-bar-fill ${cls}" style="width:${w}%"></div></div>
+    </div>`;
+  }
+
+  // ─── Main ───
+  function renderInsights() {
+    // Mode check — redirect if Detailed
+    const mode = localStorage.getItem('cm_mode') || 'simple';
+    if (mode !== 'simple') { window.location.href = '/dashboard'; return; }
+
+    const allPlates  = getPlatesData();
+    const allHabits  = getHabitsData();
+    const settings   = getSettings();
+    const waterGoal  = settings.waterGoal || 8;
+    const weekDays   = getWeekDays();
+    const mondayStr  = weekDays[0];
+    const todayStr   = weekDays[weekDays.length - 1];
+    const MEAL_KEYS  = ['breakfast', 'lunch', 'dinner'];
+
+    // Build per-day objects
+    const wd = weekDays.map(date => ({
+      date,
+      name: dayAbbr(date),
+      plates: allPlates[date] || null,
+      habits: allHabits[date] || null,
+    }));
+
+    const loggedDays = wd.filter(d => d.habits !== null).length;
+
+    // ─── Compute values needed for insight + sections ───
+
+    // Sleep
+    const sleepLogged = wd.filter(d => d.habits !== null && d.habits.sleep !== null && d.habits.sleep !== undefined);
+    const sleepGood   = sleepLogged.filter(d => d.habits.sleep === true);
+    const sleepBad    = sleepLogged.filter(d => d.habits.sleep === false);
+
+    // Activity
+    const actLogged   = wd.filter(d => d.habits?.activity != null);
+    const actActive   = actLogged.filter(d => d.habits.activity === 'steps' || d.habits.activity === 'gym');
+    const actGym      = actLogged.filter(d => d.habits.activity === 'gym');
+    const actSteps    = actLogged.filter(d => d.habits.activity === 'steps');
+    const actRest     = actLogged.filter(d => d.habits.activity === 'rest');
+
+    // Water
+    const waterLogged = wd.filter(d => d.habits !== null);
+    const hydratedDays = waterLogged.filter(d => (d.habits.water || 0) >= waterGoal);
+    const dryDays      = waterLogged.filter(d => (d.habits.water || 0) < waterGoal);
+
+    // Mood
+    const moodLogged  = wd.filter(d => d.habits?.mood != null);
+
+    // Plates
+    const plateDays   = wd.filter(d => d.plates !== null);
+    const treatPlateDays   = plateDays.filter(d => MEAL_KEYS.some(m => d.plates[m]?.verdict === 'treat'));
+    const pureHealthyDays  = plateDays.filter(d => !MEAL_KEYS.some(m => d.plates[m]?.verdict === 'treat') && MEAL_KEYS.some(m => d.plates[m]));
+
+    // Cross-ref helpers
+    const avgM = (arr) => avg(arr.map(d => d.habits?.mood).filter(n => n != null && n > 0));
+    const hiEnergy = (arr) => arr.filter(d => d.habits?.energy === 'high').length;
+    const fruitDays = wd.filter(d => d.habits?.fruits).length;
+
+    // ─── Insight generation ───
+    let insight = '';
+    const moodGoodSleep = avgM(sleepGood);
+    const moodBadSleep  = avgM(sleepBad);
+    const moodActive    = avgM(actActive);
+    const moodRest      = avgM(actRest);
+    const hiEnerHydrated = hiEnergy(hydratedDays);
+    const hiEnerDry      = hiEnergy(dryDays);
+    const moodTreat     = avgM(treatPlateDays);
+    const moodHealthy   = avgM(pureHealthyDays);
+
+    if (sleepGood.length >= 2 && sleepBad.length >= 1 && moodGoodSleep > 0 && moodBadSleep > 0 && moodGoodSleep - moodBadSleep > 0.5) {
+      insight = "You feel significantly better on days you sleep well 😴✨";
+    } else if (actActive.length >= 2 && actRest.length >= 1 && moodActive > 0 && moodRest > 0 && moodActive - moodRest > 0.5) {
+      insight = "Your mood is noticeably higher on days you stay active 🏃✨";
+    } else if (hydratedDays.length >= 2 && hiEnerHydrated > hiEnerDry) {
+      insight = "You have more energy on days you drink enough water 💧✨";
+    } else if (treatPlateDays.length >= 2 && moodTreat > 0 && moodHealthy > 0 && moodTreat < moodHealthy - 0.5) {
+      insight = "You tend to feel better on days with more healthy plates 🍽️✨";
+    } else if (fruitDays >= 5) {
+      insight = "Great job having fruits most days this week! 🍎✨";
+    } else if (loggedDays < 3) {
+      insight = "Keep logging for a few more days to see your patterns 🌱";
+    } else {
+      insight = "You're building great habits this week. Keep it up! 🔥";
+    }
+
+    const root = document.getElementById('insights-root');
+    if (!root) return;
+
+    // Not enough data
+    if (loggedDays < 2) {
+      root.innerHTML = `
+        <div class="insights-header">
+          <h1 class="insights-title">This Week's Insights</h1>
+          <p class="insights-subtitle">Monday ${fmtDate(mondayStr)} — Today ${fmtDate(todayStr)}</p>
+        </div>
+        <div class="insights-empty">
+          <div class="insights-empty-icon">🌱</div>
+          <p class="insights-empty-text">Keep logging for a few days to see your patterns.<br>Come back after a couple more days of tracking!</p>
+        </div>`;
+      return;
+    }
+
+    // ═══ Build each section ═══
+
+    // § Plates
+    let totalHealthy = 0, totalTreat = 0;
+    const dailyHealthy = {};
+    const treatDayNames = [];
+    wd.forEach(d => {
+      if (!d.plates) return;
+      let dh = 0, dt = 0;
+      MEAL_KEYS.forEach(m => {
+        if (d.plates[m]?.verdict === 'healthy') { totalHealthy++; dh++; }
+        else if (d.plates[m]?.verdict === 'treat') { totalTreat++; dt++; }
+      });
+      dailyHealthy[d.date] = dh;
+      if (dt > 0) treatDayNames.push(d.name);
+    });
+    const bestDayEntry = Object.entries(dailyHealthy).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+    const bestDayStr = bestDayEntry
+      ? `${dayAbbr(bestDayEntry[0])} (${bestDayEntry[1]} healthy plate${Number(bestDayEntry[1]) !== 1 ? 's' : ''})`
+      : '—';
+
+    const platesHTML = plateDays.length === 0
+      ? `<p class="ins-no-data">No plates logged yet — log today to see this</p>`
+      : `<div class="ins-chips">
+          <span class="ins-chip">Healthy: ${totalHealthy}</span>
+          <span class="ins-chip">Treat: ${totalTreat}</span>
+        </div>
+        <p class="ins-detail-row">Best day: <strong>${bestDayStr}</strong></p>
+        ${treatDayNames.length > 0
+          ? `<p class="ins-detail-row">Treat days: ${treatDayNames.join(', ')}</p>`
+          : `<p class="ins-detail-row" style="color:var(--color-accent-deep)">No treat plates this week! 🎉</p>`}`;
+
+    // § Sleep
+    const sleepHTML = sleepLogged.length === 0
+      ? `<p class="ins-no-data">No sleep data yet</p>`
+      : (() => {
+          let h = makeBar(sleepGood.length, sleepLogged.length, 'Slept 7+ hours');
+          if (sleepGood.length >= 2) {
+            const m = r1(moodGoodSleep);
+            const hi = hiEnergy(sleepGood);
+            h += `<div class="ins-corr">
+              <p class="ins-corr-eyebrow">On good sleep days</p>
+              ${moodGoodSleep > 0 ? `<div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Average mood: ${moodEmoji(Math.round(moodGoodSleep))} ${m}</div>` : ''}
+              <div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Energy was High: ${hi} time${hi !== 1 ? 's' : ''}</div>
+            </div>`;
+          }
+          return h;
+        })();
+
+    // § Water
+    const waterHTML = waterLogged.length === 0
+      ? `<p class="ins-no-data">No water data yet</p>`
+      : (() => {
+          let h = makeBar(hydratedDays.length, waterLogged.length, `Hit ${waterGoal} glasses`);
+          if (hydratedDays.length >= 2) {
+            const hi = hiEnergy(hydratedDays);
+            const m = r1(avgM(hydratedDays));
+            h += `<div class="ins-corr">
+              <p class="ins-corr-eyebrow">On hydrated days</p>
+              <div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Energy was High: ${hi} time${hi !== 1 ? 's' : ''}</div>
+              ${moodGoodSleep > 0 || m > 0 ? `<div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Mood averaged: ${moodEmoji(Math.round(Number(m)))} ${m}</div>` : ''}
+            </div>`;
+          }
+          return h;
+        })();
+
+    // § Activity
+    const actHTML = actLogged.length === 0
+      ? `<p class="ins-no-data">No activity data yet</p>`
+      : (() => {
+          let h = `<div class="ins-chips">
+            <span class="ins-chip">Gym: ${actGym.length}</span>
+            <span class="ins-chip">Steps: ${actSteps.length}</span>
+            <span class="ins-chip">Rest: ${actRest.length}</span>
+          </div>`;
+          h += makeBar(actActive.length, actLogged.length, 'Active days');
+          if (actActive.length >= 2) {
+            const m = r1(moodActive);
+            const hi = hiEnergy(actActive);
+            const activePlateH = actActive.reduce((s, d) => s + (d.plates ? MEAL_KEYS.filter(mk => d.plates[mk]?.verdict === 'healthy').length : 0), 0);
+            const activePlateT = actActive.reduce((s, d) => s + (d.plates ? MEAL_KEYS.filter(mk => d.plates[mk]).length : 0), 0);
+            h += `<div class="ins-corr">
+              <p class="ins-corr-eyebrow">On active days</p>
+              ${moodActive > 0 ? `<div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Mood averaged: ${moodEmoji(Math.round(moodActive))} ${m}</div>` : ''}
+              <div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Energy was High: ${hi} time${hi !== 1 ? 's' : ''}</div>
+              ${activePlateT > 0 ? `<div class="ins-corr-row"><span class="ins-corr-arrow">→</span> Healthy plates: ${Math.round(activePlateH / activePlateT * 100)}% of plates</div>` : ''}
+            </div>`;
+          }
+          return h;
+        })();
+
+    // § Checklist
+    const clTotal   = waterLogged.length; // days with any habits
+    const fruitCnt  = wd.filter(d => d.habits?.fruits).length;
+    const saladCnt  = wd.filter(d => d.habits?.salad).length;
+    const nutsCnt   = wd.filter(d => d.habits?.nuts).length;
+    const waterCnt  = hydratedDays.length;
+    const checkHTML = clTotal === 0
+      ? `<p class="ins-no-data">No checklist data yet</p>`
+      : `<div class="ins-bar-wrap">
+          <div class="ins-bar-label-row">
+            <span class="ins-bar-label">🍎 Fruits ${barBadge(fruitCnt)}</span>
+            <span class="ins-bar-count">${fruitCnt}/${clTotal}</span>
+          </div>
+          <div class="ins-bar"><div class="ins-bar-fill ${barCls(fruitCnt)}" style="width:${pct(fruitCnt,clTotal)}%"></div></div>
+        </div>
+        <div class="ins-bar-wrap">
+          <div class="ins-bar-label-row">
+            <span class="ins-bar-label">🥗 Salad/Veggies ${barBadge(saladCnt)}</span>
+            <span class="ins-bar-count">${saladCnt}/${clTotal}</span>
+          </div>
+          <div class="ins-bar"><div class="ins-bar-fill ${barCls(saladCnt)}" style="width:${pct(saladCnt,clTotal)}%"></div></div>
+        </div>
+        <div class="ins-bar-wrap">
+          <div class="ins-bar-label-row">
+            <span class="ins-bar-label">🥜 Nuts ${barBadge(nutsCnt)}</span>
+            <span class="ins-bar-count">${nutsCnt}/${clTotal}</span>
+          </div>
+          <div class="ins-bar"><div class="ins-bar-fill ${barCls(nutsCnt)}" style="width:${pct(nutsCnt,clTotal)}%"></div></div>
+        </div>
+        <div class="ins-bar-wrap">
+          <div class="ins-bar-label-row">
+            <span class="ins-bar-label">💧 Hit water goal ${barBadge(waterCnt)}</span>
+            <span class="ins-bar-count">${waterCnt}/${clTotal}</span>
+          </div>
+          <div class="ins-bar"><div class="ins-bar-fill ${barCls(waterCnt)}" style="width:${pct(waterCnt,clTotal)}%"></div></div>
+        </div>`;
+
+    // § Mood
+    const moodHTML = moodLogged.length === 0
+      ? `<p class="ins-no-data">No mood data yet</p>`
+      : (() => {
+          const mAvg = avg(moodLogged.map(d => d.habits.mood));
+          const maxMood = Math.max(...moodLogged.map(d => d.habits.mood));
+          const minMood = Math.min(...moodLogged.map(d => d.habits.mood));
+          const bestNames  = [...new Set(moodLogged.filter(d => d.habits.mood === maxMood).map(d => d.name))].join(', ');
+          const worstNames = [...new Set(moodLogged.filter(d => d.habits.mood === minMood).map(d => d.name))].join(', ');
+          return `
+            <p style="font-size:15px;font-weight:600;color:var(--color-ink);margin-bottom:var(--space-xs)">
+              Average: ${r1(mAvg)}/5 ${moodEmoji(Math.round(mAvg))}
+            </p>
+            ${maxMood >= 4 ? `<p class="ins-detail-row">Best days: <strong>${bestNames}</strong></p>` : ''}
+            ${minMood <= 2 && minMood !== maxMood ? `<p class="ins-detail-row">Lowest days: <strong>${worstNames}</strong></p>` : ''}
+            <div class="mood-day-row">
+              ${moodLogged.map(d => `
+                <div class="mood-chip">
+                  <span class="mood-chip-name">${d.name}</span>
+                  <span class="mood-chip-emoji">${moodEmoji(d.habits.mood)}</span>
+                </div>`).join('')}
+            </div>`;
+        })();
+
+    // § Energy
+    const energyLogged = wd.filter(d => d.habits?.energy != null);
+    const hiCnt  = energyLogged.filter(d => d.habits.energy === 'high').length;
+    const medCnt = energyLogged.filter(d => d.habits.energy === 'medium').length;
+    const loCnt  = energyLogged.filter(d => d.habits.energy === 'low').length;
+    const energyHTML = energyLogged.length === 0
+      ? `<p class="ins-no-data">No energy data yet</p>`
+      : `<div class="ins-chips">
+          <span class="ins-chip" style="background:#d1fae5;color:#065f46">High: ${hiCnt}</span>
+          <span class="ins-chip" style="background:#fef3c7;color:#92400e">Medium: ${medCnt}</span>
+          <span class="ins-chip">Low: ${loCnt}</span>
+        </div>
+        <div class="energy-day-row">
+          ${energyLogged.map(d => `
+            <div class="energy-chip">
+              <span class="energy-chip-name">${d.name}</span>
+              <span class="energy-pill ${d.habits.energy}">${d.habits.energy.charAt(0).toUpperCase() + d.habits.energy.slice(1)}</span>
+            </div>`).join('')}
+        </div>`;
+
+    // ─── Render ───
+    root.innerHTML = `
+      <div class="insights-header">
+        <h1 class="insights-title">This Week's Insights</h1>
+        <p class="insights-subtitle">Monday ${fmtDate(mondayStr)} — Today ${fmtDate(todayStr)}</p>
+        <p class="insights-note">Updates daily as you log</p>
+      </div>
+
+      <div class="insight-main-card">
+        <p class="insight-eyebrow">💡 This Week's Insight</p>
+        <p class="insight-text">${insight}</p>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">🍽️ Plates</h2>
+          ${platesHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">😴 Sleep</h2>
+          ${sleepHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">💧 Water</h2>
+          ${waterHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">🏃 Activity</h2>
+          ${actHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">✅ Healthy Habits</h2>
+          ${checkHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">😊 Mood This Week</h2>
+          ${moodHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="card-lg ins-card">
+          <h2 class="ins-title">⚡ Energy This Week</h2>
+          ${energyHTML}
+        </div>
+      </div>
+
+      <div class="ins-section">
+        <div class="ins-harvard-card">
+          <h2 class="ins-harvard-title">📚 Why This Works</h2>
+          <p class="ins-harvard-body">The Harvard Plate method was developed by nutrition scientists at Harvard T.H. Chan School of Public Health as the simplest evidence-based way to eat healthy.<br><br>No calorie counting. No food rules. Just balance — and it works.</p>
+          <div class="ins-harvard-checks">
+            <span class="ins-harvard-check">✓ Reduces caloric intake naturally</span>
+            <span class="ins-harvard-check">✓ Stabilizes blood sugar</span>
+            <span class="ins-harvard-check">✓ Keeps you full longer</span>
+            <span class="ins-harvard-check">✓ No foods are banned</span>
+            <span class="ins-harvard-check">✓ Sustainable long term</span>
+          </div>
+          <a href="https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/" target="_blank" rel="noopener noreferrer" class="ins-harvard-link">Read the Harvard research ↗</a>
+        </div>
+      </div>
+    `;
+  }
+
+  renderInsights();
+</script>

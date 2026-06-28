@@ -1,0 +1,281 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Settings — CalorieMetric"
+  description="Manage your CalorieMetric settings: tracking mode, units, water goal, and more."
+>
+  <section class="settings-page">
+    <div class="container settings-container">
+      <div class="settings-header">
+        <h1 class="section-heading">Settings ⚙️</h1>
+        <p class="text-body" style="margin-top:var(--space-xs)">Manage your preferences. Changes save automatically.</p>
+      </div>
+
+      <!-- Tracking Mode -->
+      <div class="settings-card card-lg">
+        <h2 class="settings-section-title">Tracking Mode</h2>
+        <p class="settings-section-desc">Choose how you want to track your health. Switching modes won't delete your data.</p>
+        <div class="mode-toggle-row">
+          <button class="mode-toggle-btn" id="mode-simple-btn" data-mode="simple">
+            <span class="mode-toggle-emoji">🌱</span>
+            <div class="mode-toggle-text">
+              <span class="mode-toggle-label">Simple</span>
+              <span class="mode-toggle-desc">Visual plate logging, no math</span>
+            </div>
+          </button>
+          <button class="mode-toggle-btn" id="mode-detailed-btn" data-mode="detailed">
+            <span class="mode-toggle-emoji">📊</span>
+            <div class="mode-toggle-text">
+              <span class="mode-toggle-label">Detailed</span>
+              <span class="mode-toggle-desc">Calorie &amp; macro tracking</span>
+            </div>
+          </button>
+        </div>
+        <!-- Inline confirmation -->
+        <div class="mode-confirm hidden" id="mode-confirm">
+          <p class="mode-confirm-text">Switching modes won't delete your data. Continue?</p>
+          <div class="mode-confirm-actions">
+            <button class="btn-accent btn-sm" id="mode-confirm-yes">Yes, switch</button>
+            <button class="btn-secondary btn-sm" id="mode-confirm-no">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Units -->
+      <div class="settings-card card-lg">
+        <h2 class="settings-section-title">Units</h2>
+        <p class="settings-section-desc">Affects how weight and height are displayed throughout the app.</p>
+        <div class="toggle-group" style="max-width:320px" role="group" aria-label="Select units">
+          <button type="button" class="toggle-option" id="units-imperial" data-units="imperial">Imperial (lbs, ft/in)</button>
+          <button type="button" class="toggle-option" id="units-metric" data-units="metric">Metric (kg, cm)</button>
+        </div>
+      </div>
+
+      <!-- Daily Water Goal -->
+      <div class="settings-card card-lg">
+        <h2 class="settings-section-title">Daily Water Goal</h2>
+        <p class="settings-section-desc">How many glasses of water per day is your goal?</p>
+        <div class="settings-input-row">
+          <input type="number" class="form-input settings-number-input" id="water-goal-input" min="1" max="20" value="8" />
+          <span class="settings-input-unit">glasses / day</span>
+        </div>
+      </div>
+
+      <!-- Weekly Flex Plate Allowance -->
+      <div class="settings-card card-lg">
+        <h2 class="settings-section-title">Weekly Flex Plate Allowance</h2>
+        <p class="settings-section-desc">How many flex plates are you allowed per week? (Simple mode)</p>
+        <div class="flex-slider-row">
+          <input type="range" id="flex-allowance-slider" min="1" max="4" step="1" value="2" class="flex-slider" />
+          <span class="flex-allowance-val" id="flex-allowance-val">2</span>
+          <span class="settings-input-unit">per week</span>
+        </div>
+        <div class="flex-ticks">
+          <span>1</span><span>2</span><span>3</span><span>4</span>
+        </div>
+      </div>
+
+      <!-- Clear All Data -->
+      <div class="settings-card card-lg settings-danger-card">
+        <h2 class="settings-section-title settings-danger-title">Clear All Data</h2>
+        <p class="settings-section-desc">Permanently delete all your CalorieMetric data from this device. This cannot be undone.</p>
+        <button class="btn-danger" id="clear-data-btn">Clear All Data</button>
+        <div class="clear-confirm hidden" id="clear-confirm">
+          <p class="clear-confirm-text">This will delete all your data permanently. Are you sure?</p>
+          <div class="clear-confirm-actions">
+            <button class="btn-danger btn-sm" id="clear-confirm-yes">Yes, delete everything</button>
+            <button class="btn-secondary btn-sm" id="clear-confirm-no">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .settings-page { padding: var(--space-4xl) 0 var(--space-5xl); }
+  .settings-container { max-width: 640px; }
+  .settings-header { margin-bottom: var(--space-xl); }
+
+  .settings-card { margin-bottom: var(--space-md); }
+  .settings-section-title { font-size: 16px; font-weight: 600; color: var(--color-ink); margin-bottom: var(--space-xs); }
+  .settings-section-desc { font-size: 14px; color: var(--color-mute); margin-bottom: var(--space-md); line-height: 20px; }
+
+  /* Mode toggle */
+  .mode-toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  .mode-toggle-btn {
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-md); border-radius: var(--radius-lg);
+    border: 2px solid var(--color-hairline); background: var(--color-canvas-soft);
+    cursor: pointer; text-align: left; transition: all 0.15s;
+  }
+  .mode-toggle-btn:hover { border-color: var(--color-accent); background: var(--color-accent-soft); }
+  .mode-toggle-btn.active { border-color: var(--color-accent); background: var(--color-accent-soft); }
+  .mode-toggle-emoji { font-size: 28px; flex-shrink: 0; }
+  .mode-toggle-text { display: flex; flex-direction: column; gap: 2px; }
+  .mode-toggle-label { font-size: 14px; font-weight: 600; color: var(--color-ink); }
+  .mode-toggle-desc { font-size: 12px; color: var(--color-mute); }
+
+  .mode-confirm {
+    margin-top: var(--space-md); padding: var(--space-md);
+    background: var(--color-warning-soft); border-radius: var(--radius-md);
+    border: 1px solid var(--color-warning);
+  }
+  .mode-confirm-text { font-size: 14px; color: var(--color-warning-deep); margin-bottom: var(--space-sm); }
+  .mode-confirm-actions { display: flex; gap: var(--space-sm); }
+
+  /* Number input */
+  .settings-input-row { display: flex; align-items: center; gap: var(--space-sm); }
+  .settings-number-input { width: 80px !important; text-align: center; }
+  .settings-input-unit { font-size: 14px; color: var(--color-mute); }
+
+  /* Flex slider */
+  .flex-slider-row { display: flex; align-items: center; gap: var(--space-md); }
+  .flex-slider {
+    flex: 1; appearance: none; height: 4px; border-radius: var(--radius-full);
+    background: var(--color-hairline); outline: none; cursor: pointer;
+  }
+  .flex-slider::-webkit-slider-thumb {
+    appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--color-accent); cursor: pointer; border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .flex-slider::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--color-accent); cursor: pointer; border: 2px solid white;
+  }
+  .flex-allowance-val { font-size: 22px; font-weight: 700; color: var(--color-accent-deep); min-width: 24px; text-align: center; }
+  .flex-ticks { display: flex; justify-content: space-between; padding: 0 4px; margin-top: var(--space-xxs); }
+  .flex-ticks span { font-size: 11px; color: var(--color-mute); font-family: var(--font-mono); }
+
+  /* Danger zone */
+  .settings-danger-card { border: 1px solid var(--color-error-soft); }
+  .settings-danger-title { color: var(--color-error); }
+  .btn-danger {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--color-error); color: white;
+    font-size: 14px; font-weight: 500;
+    padding: 10px var(--space-lg); border-radius: var(--radius-pill);
+    border: none; cursor: pointer; transition: opacity 0.2s; font-family: inherit;
+  }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-danger.btn-sm { font-size: 13px; padding: 8px var(--space-md); }
+  .clear-confirm {
+    margin-top: var(--space-md); padding: var(--space-md);
+    background: var(--color-error-soft); border-radius: var(--radius-md);
+    border: 1px solid var(--color-error);
+  }
+  .clear-confirm-text { font-size: 14px; color: var(--color-error); margin-bottom: var(--space-sm); font-weight: 500; }
+  .clear-confirm-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .settings-page { padding: var(--space-xl) 0 var(--space-3xl); }
+    .mode-toggle-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  function getSettings() {
+    try { return { waterGoal: 8, flexAllowance: 2, ...JSON.parse(localStorage.getItem('cm_settings') || '{}') }; }
+    catch { return { waterGoal: 8, flexAllowance: 2 }; }
+  }
+  function saveSettings(s) { try { localStorage.setItem('cm_settings', JSON.stringify(s)); } catch {} }
+
+  const settings = getSettings();
+  const mode = localStorage.getItem('cm_mode') || 'simple';
+  const units = localStorage.getItem('cm_units') || 'imperial';
+
+  // ── Mode toggle ──
+  let pendingMode = null;
+
+  function applyModeUI(m) {
+    document.getElementById('mode-simple-btn').classList.toggle('active', m === 'simple');
+    document.getElementById('mode-detailed-btn').classList.toggle('active', m === 'detailed');
+  }
+  applyModeUI(mode);
+
+  document.querySelectorAll('.mode-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const newMode = btn.dataset.mode;
+      if (newMode === (localStorage.getItem('cm_mode') || 'simple')) return;
+      pendingMode = newMode;
+      document.getElementById('mode-confirm').classList.remove('hidden');
+    });
+  });
+
+  document.getElementById('mode-confirm-yes').addEventListener('click', () => {
+    if (pendingMode) {
+      try { localStorage.setItem('cm_mode', pendingMode); } catch {}
+      applyModeUI(pendingMode);
+      pendingMode = null;
+    }
+    document.getElementById('mode-confirm').classList.add('hidden');
+  });
+
+  document.getElementById('mode-confirm-no').addEventListener('click', () => {
+    pendingMode = null;
+    document.getElementById('mode-confirm').classList.add('hidden');
+  });
+
+  // ── Units toggle ──
+  function applyUnitsUI(u) {
+    document.getElementById('units-imperial').classList.toggle('active', u === 'imperial');
+    document.getElementById('units-metric').classList.toggle('active', u === 'metric');
+  }
+  applyUnitsUI(units);
+
+  document.querySelectorAll('[data-units]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const u = btn.dataset.units;
+      try { localStorage.setItem('cm_units', u); } catch {}
+      applyUnitsUI(u);
+    });
+  });
+
+  // ── Water goal ──
+  const waterInput = document.getElementById('water-goal-input');
+  waterInput.value = String(settings.waterGoal || 8);
+  waterInput.addEventListener('change', () => {
+    const val = Math.max(1, Math.min(20, parseInt(waterInput.value) || 8));
+    waterInput.value = String(val);
+    const s = getSettings();
+    s.waterGoal = val;
+    saveSettings(s);
+  });
+
+  // ── Flex allowance ──
+  const flexSlider = document.getElementById('flex-allowance-slider');
+  const flexVal = document.getElementById('flex-allowance-val');
+  flexSlider.value = String(settings.flexAllowance || 2);
+  flexVal.textContent = flexSlider.value;
+  flexSlider.addEventListener('input', () => {
+    flexVal.textContent = flexSlider.value;
+    const s = getSettings();
+    s.flexAllowance = parseInt(flexSlider.value);
+    saveSettings(s);
+  });
+
+  // ── Clear all data ──
+  document.getElementById('clear-data-btn').addEventListener('click', () => {
+    document.getElementById('clear-confirm').classList.remove('hidden');
+  });
+
+  document.getElementById('clear-confirm-no').addEventListener('click', () => {
+    document.getElementById('clear-confirm').classList.add('hidden');
+  });
+
+  document.getElementById('clear-confirm-yes').addEventListener('click', () => {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('cm_')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+    window.location.href = '/';
+  });
+</script>
