@@ -338,6 +338,10 @@ import Layout from '../layouts/Layout.astro';
   .plate-circle-container { border-radius: 50%; transition: box-shadow 0.3s; padding: 8px; }
   .plate-circle-container.glow-healthy { box-shadow: 0 0 24px rgba(16,185,129,0.5), 0 0 48px rgba(16,185,129,0.2); }
   .plate-circle-container.glow-treat { box-shadow: 0 0 24px rgba(249,115,22,0.5), 0 0 48px rgba(249,115,22,0.2); }
+  #plate-svg .ph { touch-action: none; cursor: grab; }
+  @media (max-width: 768px) {
+    #plate-svg .pv { r: 13; }
+  }
 
   .plate-section-labels { display: flex; flex-direction: column; gap: var(--space-xs); margin-bottom: var(--space-xs); }
   .sl-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
@@ -798,7 +802,7 @@ import Layout from '../layouts/Layout.astro';
 
     for (let i = 0; i < boundaries.length; i++) {
       const pos = polarToXY(boundaries[i] * 3.6, outerR);
-      handles += `<circle class="ph" data-i="${i}" cx="${pos.x}" cy="${pos.y}" r="20" fill="rgba(0,0,0,0)" stroke="none" pointer-events="all" style="cursor:grab;touch-action:none" /><circle cx="${pos.x}" cy="${pos.y}" r="9" fill="white" stroke="#94a3b8" stroke-width="2.5" style="pointer-events:none;touch-action:none" />`;
+      handles += `<circle class="ph" data-i="${i}" cx="${pos.x}" cy="${pos.y}" r="20" fill="rgba(0,0,0,0)" stroke="none" pointer-events="all" style="cursor:grab;touch-action:none" /><circle class="pv" cx="${pos.x}" cy="${pos.y}" r="9" fill="white" stroke="#94a3b8" stroke-width="2.5" style="pointer-events:none;touch-action:none" />`;
     }
 
     // Harvard target boundary markers (dotted lines at ideal 50% and 75% positions)
@@ -813,7 +817,51 @@ import Layout from '../layouts/Layout.astro';
     svg.innerHTML = paths + labels + targetMarkers + handles;
     svg.querySelectorAll('.ph').forEach(h => {
       h.addEventListener('mousedown', startPlateDrag);
-      h.addEventListener('touchstart', startPlateDrag, { passive: false });
+      h.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const handleIdx = parseInt((e.currentTarget as HTMLElement).dataset.i);
+        const svgEl = document.getElementById('plate-svg');
+
+        function touchMove(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const rect = svgEl.getBoundingClientRect();
+          const touch = ev.touches[0];
+          const svgX = (touch.clientX - rect.left) / rect.width * 200;
+          const svgY = (touch.clientY - rect.top) / rect.height * 200;
+          let angle = Math.atan2(svgY - 100, svgX - 100) * 180 / Math.PI + 90;
+          if (angle < 0) angle += 360;
+          if (angle >= 360) angle -= 360;
+          let newPct = angle / 3.6;
+          let cum2 = 0;
+          const cumPcts = [];
+          for (let j = 0; j < plateSections.length - 1; j++) {
+            cum2 += plateSections[j].pct;
+            cumPcts.push(cum2);
+          }
+          const minSize = 5;
+          const prevBound = handleIdx === 0 ? 0 : cumPcts[handleIdx - 1];
+          const nextBound = handleIdx === cumPcts.length - 1 ? 100 : cumPcts[handleIdx + 1];
+          newPct = Math.max(prevBound + minSize, Math.min(nextBound - minSize, newPct));
+          cumPcts[handleIdx] = newPct;
+          plateSections[0].pct = cumPcts[0];
+          for (let j = 1; j < plateSections.length - 1; j++) {
+            plateSections[j].pct = cumPcts[j] - cumPcts[j - 1];
+          }
+          plateSections[plateSections.length - 1].pct = 100 - cumPcts[cumPcts.length - 1];
+          renderPlateSVG();
+        }
+
+        function touchEnd(ev) {
+          ev.preventDefault();
+          h.removeEventListener('touchmove', touchMove);
+          h.removeEventListener('touchend', touchEnd);
+        }
+
+        h.addEventListener('touchmove', touchMove, { passive: false });
+        h.addEventListener('touchend', touchEnd, { passive: false });
+      }, { passive: false });
     });
 
     // Glow: Grains & Carbs > 50% → warning orange, else green
@@ -927,6 +975,7 @@ import Layout from '../layouts/Layout.astro';
   // ─────────────────────────────────────
   function startPlateDrag(e) {
     e.preventDefault();
+    e.stopPropagation();
     const handleIdx = parseInt((e.currentTarget as HTMLElement).dataset.i);
     const svg = document.getElementById('plate-svg');
 
